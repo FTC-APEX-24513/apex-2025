@@ -6,6 +6,11 @@ junit = "4.13.2"
 coreKtx = "1.6.0"
 junitVersion = "1.1.5"
 appcompat = "1.2.0"
+pedroPathing = "2.0.2"
+pedroTelemetry = "1.0.0"
+fullpanels = "1.0.6"
+dairy = "2.2.4"
+mercurial = "1.0.3"
 
 [libraries]
 ftc-inspection = { module = "org.firstinspires.ftc:Inspection", version.ref = "ftc" }
@@ -16,6 +21,11 @@ ftc-onbotjava = { module = "org.firstinspires.ftc:OnBotJava", version.ref = "ftc
 ftc-hardware = { module = "org.firstinspires.ftc:Hardware", version.ref = "ftc" }
 ftc-ftccommon = { module = "org.firstinspires.ftc:FtcCommon", version.ref = "ftc" }
 ftc-vision = { module = "org.firstinspires.ftc:Vision", version.ref = "ftc" }
+pedro-pathing-ftc = { module = "com.pedropathing:ftc", version.ref = "pedroPathing" }
+pedro-pathing-telemetry = { module = "com.pedropathing:telemetry", version.ref = "pedroTelemetry" }
+fullpanels = { module = "com.bylazar:fullpanels", version.ref = "fullpanels" }
+dairy-core = { module = "dev.frozenmilk.dairy:Core", version.ref = "dairy" }
+dairy-mercurial = { module = "dev.frozenmilk.mercurial:Mercurial", version.ref = "mercurial" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

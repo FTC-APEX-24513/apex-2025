@@ -94,4 +94,10 @@ dependencies {
     implementation(libs.ftc.hardware)
     implementation(libs.ftc.ftccommon)
     implementation(libs.ftc.vision)
+
+    implementation(libs.pedro.pathing.ftc)
+    implementation(libs.pedro.pathing.telemetry)
+    implementation(libs.fullpanels)
+    implementation(libs.dairy.core)
+    implementation(libs.dairy.mercurial)
 }
