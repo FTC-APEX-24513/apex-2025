@@ -5,8 +5,8 @@ plugins {
 
 android {
     namespace = "edu.exeter.apex.ftc.teamcode"
+    compileSdk = 34
     //noinspection GradleDependency
-    compileSdk = 30
 
     signingConfigs {
         create("release") {
