@@ -24,5 +24,8 @@ public class poses {
     private final Pose redBottomRowStart = new Pose(104, 36, Math.toRadians(180));
     private final Pose redBottomRowEnd = new Pose(124, 36, Math.toRadians(180));
     private final Pose redScore = new Pose(); //Scoring Pose will be determined by testing
+
+    //advit will add the april tag poses later
+
 }
 
