@@ -18,8 +18,6 @@ public class blueBottom_0 extends OpMode {
     private Timer pathTimer, actionTimer, opmodeTimer;
     private int pathState;
     private final Pose startPoseBlueBottom = new Pose(56, 16, Math.toRadians(180)); //Aligned with top right of robot on W1
-    private final Pose blueBottomRowStart = new Pose(40, 36, Math.toRadians(180));
-    private final Pose blueBottomRowEnd = new Pose(20, 36, Math.toRadians(180));
     private final Pose blueScore = new Pose(); //Scoring Pose will be determined by testing
 
     private PathChain blueStartToScore;
