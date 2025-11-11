@@ -9,8 +9,8 @@ plugins {
 
 android {
     namespace = "com.qualcomm.ftcrobotcontroller"
+    compileSdk = 34
     //noinspection GradleDependency
-    compileSdk = 30
 
     defaultConfig {
         minSdk = 24
