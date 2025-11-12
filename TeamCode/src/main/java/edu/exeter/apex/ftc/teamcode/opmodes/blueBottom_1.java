@@ -8,6 +8,7 @@ import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import edu.exeter.apex.ftc.teamcode.subsystems.Intake;
 
 
 import pedroPathing.Constants;
@@ -22,6 +23,8 @@ public class blueBottom_1 extends OpMode {
     private final Pose blueBottomRowEnd = new Pose(20, 36, Math.toRadians(180));
     private final Pose blueScore = new Pose(); //Scoring Pose will be determined by testing
 
+    private Intake intake;
+
     private PathChain blueStartToScore, blueScoreToBottom, blueBottomIntake, blueBottomToScore;
 
     @Override
@@ -33,6 +36,7 @@ public class blueBottom_1 extends OpMode {
         follower = Constants.createFollower(hardwareMap);
         buildPaths();
         follower.setStartingPose(startPoseBlueBottom);
+        intake = new Intake(hardwareMap);
     }
 
     @Override
@@ -106,6 +110,7 @@ public class blueBottom_1 extends OpMode {
             case 2:
                 // Move to bottom row for intake
                 if (!follower.isBusy()) {
+                    intake.intake();
                     follower.followPath(blueBottomIntake);
                     setPathState(3);
                 }
@@ -114,6 +119,7 @@ public class blueBottom_1 extends OpMode {
             case 3:
                 // Finish bottom intake
                 if (!follower.isBusy()) {
+                    intake.intakeStop();
                     follower.followPath(blueBottomToScore);
                     setPathState(4);
                 }
