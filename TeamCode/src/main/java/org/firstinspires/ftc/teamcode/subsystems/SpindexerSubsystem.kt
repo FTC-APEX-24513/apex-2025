@@ -1,37 +1,28 @@
 package org.firstinspires.ftc.teamcode.subsystems
 
 import com.qualcomm.robotcore.hardware.HardwareMap
-import com.qualcomm.robotcore.hardware.Servo
 import me.tatarka.inject.annotations.Inject
-import org.firstinspires.ftc.teamcode.di.RobotScope
+import org.firstinspires.ftc.teamcode.di.HardwareScope
+import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 
 @Inject
-@SingleIn(RobotScope::class)
-@ContributesBinding(RobotScope::class, multibinding = true)
-class SpindexerSubsystem : Subsystem {
-    private lateinit var servo: Servo
+@SingleIn(HardwareScope::class)
+class SpindexerSubsystem(hardwareMap: HardwareMap) {
+    private val servo = hardwareMap.servo.get("spindexer").apply {
+        position = DEFAULT_POSITION
+    }
 
     companion object {
         private const val DEFAULT_POSITION = 0.2639
     }
 
-    override fun init(hardwareMap: HardwareMap) {
-        servo = hardwareMap.servo.get("spindexer").apply {
-            position = DEFAULT_POSITION
-        }
-    }
-
-    fun setPosition(position: Double) {
+    fun setPosition(position: Double) = exec {
         servo.position = position
     }
 
-    fun reset() {
+    fun reset() = exec {
         servo.position = DEFAULT_POSITION
-    }
-
-    override fun periodic() {
-        // Optional: Add state machine or position tracking
     }
 }

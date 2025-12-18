@@ -13,6 +13,7 @@ appcompat = "1.2.0"
 pedroPathing = "2.0.2"
 pedroTelemetry = "1.0.0"
 fullpanels = "1.0.6"
+mercurial = "2.0.0-beta9"
 
 [libraries]
 ftc-inspection = { module = "org.firstinspires.ftc:Inspection", version.ref = "ftc" }
@@ -27,6 +28,7 @@ gradle = { module = "com.android.tools.build:gradle", version.ref = "gradle" }
 pedro-pathing-ftc = { module = "com.pedropathing:ftc", version.ref = "pedroPathing" }
 pedro-pathing-telemetry = { module = "com.pedropathing:telemetry", version.ref = "pedroTelemetry" }
 bylazar-fullpanels = { module = "com.bylazar:fullpanels", version.ref = "fullpanels" }
+dairy-mercurial = { module = "dev.frozenmilk.dairy:MercurialFTC", version.ref = "mercurial" }
 kotlin-inject-runtime = { module = "me.tatarka.inject:kotlin-inject-runtime", version.ref = "kotlinInject" }
 kotlin-inject-compiler = { module = "me.tatarka.inject:kotlin-inject-compiler-ksp", version.ref = "kotlinInject" }
 kotlin-inject-anvil-runtime = { module = "software.amazon.lastmile.kotlin.inject.anvil:runtime", version.ref = "kotlinInjectAnvil" }

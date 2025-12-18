@@ -4,38 +4,31 @@ import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.DcMotorSimple
 import com.qualcomm.robotcore.hardware.HardwareMap
 import me.tatarka.inject.annotations.Inject
-import org.firstinspires.ftc.teamcode.di.RobotScope
+import org.firstinspires.ftc.teamcode.di.HardwareScope
+import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
 import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 import kotlin.math.abs
 import kotlin.math.max
 
 @Inject
-@SingleIn(RobotScope::class)
-@ContributesBinding(RobotScope::class, multibinding = true)
-class MecanumSubsystem : Subsystem {
-    private lateinit var frontLeft: DcMotor
-    private lateinit var backLeft: DcMotor
-    private lateinit var frontRight: DcMotor
-    private lateinit var backRight: DcMotor
-
-    override fun init(hardwareMap: HardwareMap) {
-        frontLeft = hardwareMap.get(DcMotor::class.java, "leftFront").apply {
-            zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
-            direction = DcMotorSimple.Direction.REVERSE
-        }
-        backLeft = hardwareMap.get(DcMotor::class.java, "leftRear").apply {
-            zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
-            direction = DcMotorSimple.Direction.REVERSE
-        }
-        frontRight = hardwareMap.get(DcMotor::class.java, "rightFront").apply {
-            zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
-            direction = DcMotorSimple.Direction.REVERSE
-        }
-        backRight = hardwareMap.get(DcMotor::class.java, "rightRear").apply {
-            zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
-            direction = DcMotorSimple.Direction.FORWARD
-        }
+@SingleIn(HardwareScope::class)
+class MecanumSubsystem(hardwareMap: HardwareMap) {
+    private val frontLeft = hardwareMap.get(DcMotor::class.java, "leftFront").apply {
+        zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
+        direction = DcMotorSimple.Direction.REVERSE
+    }
+    private val backLeft = hardwareMap.get(DcMotor::class.java, "leftRear").apply {
+        zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
+        direction = DcMotorSimple.Direction.REVERSE
+    }
+    private val frontRight = hardwareMap.get(DcMotor::class.java, "rightFront").apply {
+        zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
+        direction = DcMotorSimple.Direction.REVERSE
+    }
+    private val backRight = hardwareMap.get(DcMotor::class.java, "rightRear").apply {
+        zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
+        direction = DcMotorSimple.Direction.FORWARD
     }
 
     /**
@@ -69,14 +62,10 @@ class MecanumSubsystem : Subsystem {
         backRight.power = backRightPower
     }
 
-    fun stop() {
+    fun stop() = exec {
         frontLeft.power = 0.0
         frontRight.power = 0.0
         backLeft.power = 0.0
         backRight.power = 0.0
-    }
-
-    override fun periodic() {
-        // Optional: Add telemetry updates or control loops here
     }
 }

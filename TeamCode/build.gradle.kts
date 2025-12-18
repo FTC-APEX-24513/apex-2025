@@ -126,6 +126,7 @@ dependencies {
     implementation(libs.pedro.pathing.ftc)
     implementation(libs.pedro.pathing.telemetry)
     implementation(libs.bylazar.fullpanels)
+    implementation(libs.dairy.mercurial)
 
     // kotlin-inject
     implementation(libs.kotlin.inject.runtime)
