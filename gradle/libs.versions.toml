@@ -3,6 +3,9 @@ agp = "8.11.0"
 ftc = "11.0.0"
 gradle = "8.7.0"
 kotlin = "2.0.21"
+ksp = "2.0.21-1.0.28"
+kotlinInject = "0.7.2"
+kotlinInjectAnvil = "0.1.1"
 junit = "4.13.2"
 coreKtx = "1.6.0"
 junitVersion = "1.1.5"
@@ -24,6 +27,11 @@ gradle = { module = "com.android.tools.build:gradle", version.ref = "gradle" }
 pedro-pathing-ftc = { module = "com.pedropathing:ftc", version.ref = "pedroPathing" }
 pedro-pathing-telemetry = { module = "com.pedropathing:telemetry", version.ref = "pedroTelemetry" }
 bylazar-fullpanels = { module = "com.bylazar:fullpanels", version.ref = "fullpanels" }
+kotlin-inject-runtime = { module = "me.tatarka.inject:kotlin-inject-runtime", version.ref = "kotlinInject" }
+kotlin-inject-compiler = { module = "me.tatarka.inject:kotlin-inject-compiler-ksp", version.ref = "kotlinInject" }
+kotlin-inject-anvil-runtime = { module = "software.amazon.lastmile.kotlin.inject.anvil:runtime", version.ref = "kotlinInjectAnvil" }
+kotlin-inject-anvil-runtime-optional = { module = "software.amazon.lastmile.kotlin.inject.anvil:runtime-optional", version.ref = "kotlinInjectAnvil" }
+kotlin-inject-anvil-compiler = { module = "software.amazon.lastmile.kotlin.inject.anvil:compiler", version.ref = "kotlinInjectAnvil" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
@@ -33,3 +41,4 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 android-library = { id = "com.android.library", version.ref = "agp" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
