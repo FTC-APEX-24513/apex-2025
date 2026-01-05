@@ -3,20 +3,17 @@ package org.firstinspires.ftc.teamcode.subsystems
 import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.HardwareMap
 import dev.frozenmilk.dairy.mercurial.continuations.Actors
+import dev.frozenmilk.dairy.mercurial.continuations.Closure
 import dev.frozenmilk.dairy.mercurial.continuations.channels.Channels
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.match
 import me.tatarka.inject.annotations.Inject
 import org.firstinspires.ftc.teamcode.constants.RobotConstants
-import org.firstinspires.ftc.teamcode.di.HardwareScope
-import org.firstinspires.ftc.teamcode.subsystems.interfaces.IntakeSubsystem as IIntakeSubsystem
-import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
-import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
+import org.firstinspires.ftc.teamcode.di.HardwareScoped
 
 @Inject
-@SingleIn(HardwareScope::class)
-@ContributesBinding(HardwareScope::class)
-class IntakeSubsystem(hardwareMap: HardwareMap) : IIntakeSubsystem {
+@HardwareScoped
+class IntakeSubsystem(hardwareMap: HardwareMap) {
     private val motor = hardwareMap.dcMotor.get("intake").apply {
         zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
     }
@@ -48,7 +45,7 @@ class IntakeSubsystem(hardwareMap: HardwareMap) : IIntakeSubsystem {
         }
     )
     
-    override fun collect() = Channels.send({ State.COLLECTING }, { actor.tx })
-    override fun eject() = Channels.send({ State.EJECTING }, { actor.tx })
-    override fun stop() = Channels.send({ State.IDLE }, { actor.tx })
+    fun collect(): Closure = Channels.send({ State.COLLECTING }, { actor.tx })
+    fun eject(): Closure = Channels.send({ State.EJECTING }, { actor.tx })
+    fun stop(): Closure = Channels.send({ State.IDLE }, { actor.tx })
 }

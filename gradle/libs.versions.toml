@@ -5,7 +5,6 @@ gradle = "8.7.0"
 kotlin = "2.0.21"
 ksp = "2.0.21-1.0.28"
 kotlinInject = "0.7.2"
-kotlinInjectAnvil = "0.1.1"
 junit = "4.13.2"
 coreKtx = "1.6.0"
 junitVersion = "1.1.5"
@@ -31,9 +30,6 @@ bylazar-fullpanels = { module = "com.bylazar:fullpanels", version.ref = "fullpan
 dairy-mercurial = { module = "dev.frozenmilk.dairy:MercurialFTC", version.ref = "mercurial" }
 kotlin-inject-runtime = { module = "me.tatarka.inject:kotlin-inject-runtime", version.ref = "kotlinInject" }
 kotlin-inject-compiler = { module = "me.tatarka.inject:kotlin-inject-compiler-ksp", version.ref = "kotlinInject" }
-kotlin-inject-anvil-runtime = { module = "software.amazon.lastmile.kotlin.inject.anvil:runtime", version.ref = "kotlinInjectAnvil" }
-kotlin-inject-anvil-runtime-optional = { module = "software.amazon.lastmile.kotlin.inject.anvil:runtime-optional", version.ref = "kotlinInjectAnvil" }
-kotlin-inject-anvil-compiler = { module = "software.amazon.lastmile.kotlin.inject.anvil:compiler", version.ref = "kotlinInjectAnvil" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

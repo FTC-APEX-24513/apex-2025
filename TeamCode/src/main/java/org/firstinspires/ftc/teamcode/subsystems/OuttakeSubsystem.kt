@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.subsystems
 import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.HardwareMap
 import dev.frozenmilk.dairy.mercurial.continuations.Actors
+import dev.frozenmilk.dairy.mercurial.continuations.Closure
 import dev.frozenmilk.dairy.mercurial.continuations.channels.Channels
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.loop
@@ -10,17 +11,13 @@ import dev.frozenmilk.dairy.mercurial.continuations.Continuations.match
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.sequence
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.wait
 import me.tatarka.inject.annotations.Inject
-import org.firstinspires.ftc.teamcode.di.HardwareScope
 import org.firstinspires.ftc.teamcode.constants.ShootingConstants
-import org.firstinspires.ftc.teamcode.subsystems.interfaces.OuttakeSubsystem as IOuttakeSubsystem
-import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
-import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
+import org.firstinspires.ftc.teamcode.di.HardwareScoped
 import kotlin.math.abs
 
 @Inject
-@SingleIn(HardwareScope::class)
-@ContributesBinding(HardwareScope::class)
-class OuttakeSubsystem(hardwareMap: HardwareMap) : IOuttakeSubsystem {
+@HardwareScoped
+class OuttakeSubsystem(hardwareMap: HardwareMap) {
     // Cache as DcMotorEx for velocity reading - avoids repeated casts
     private val motor = hardwareMap.get(com.qualcomm.robotcore.hardware.DcMotorEx::class.java, "flywheel").apply {
         zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
@@ -111,7 +108,7 @@ class OuttakeSubsystem(hardwareMap: HardwareMap) : IOuttakeSubsystem {
      * Uses getVelocity() which returns encoder ticks per second.
      * Optimized: motor is already cached as DcMotorEx, no cast needed.
      */
-    override fun getCurrentRPM(): Double {
+    fun getCurrentRPM(): Double {
         val ticksPerSecond = motor.velocity  // Direct property access, no cast
         val revolutionsPerSecond = ticksPerSecond / ShootingConstants.TICKS_PER_REVOLUTION
         return revolutionsPerSecond * 60.0
@@ -120,7 +117,7 @@ class OuttakeSubsystem(hardwareMap: HardwareMap) : IOuttakeSubsystem {
     /**
      * Check if flywheel is at target speed within tolerance.
      */
-    override fun isAtTargetSpeed(targetRPM: Double, tolerance: Double): Boolean {
+    fun isAtTargetSpeed(targetRPM: Double, tolerance: Double = 0.05): Boolean {
         val currentRPM = getCurrentRPM()
         val error = abs(targetRPM - currentRPM) / targetRPM.coerceAtLeast(1.0)
         return error < tolerance
@@ -135,11 +132,8 @@ class OuttakeSubsystem(hardwareMap: HardwareMap) : IOuttakeSubsystem {
         return power.coerceIn(0.0, 1.0)
     }
     
-    // Original interface methods
-    override fun spinUp() = Channels.send({ Command.SpinUpFixed }, { actor.tx })
-    override fun launch() = Channels.send({ Command.Launch }, { actor.tx })
-    override fun stop() = Channels.send({ Command.Stop }, { actor.tx })
-    
-    // New variable RPM control
-    override fun spinToRPM(targetRPM: Double) = Channels.send({ Command.SpinToRPM(targetRPM) }, { actor.tx })
+    fun spinUp(): Closure = Channels.send({ Command.SpinUpFixed }, { actor.tx })
+    fun launch(): Closure = Channels.send({ Command.Launch }, { actor.tx })
+    fun stop(): Closure = Channels.send({ Command.Stop }, { actor.tx })
+    fun spinToRPM(targetRPM: Double): Closure = Channels.send({ Command.SpinToRPM(targetRPM) }, { actor.tx })
 }

@@ -5,22 +5,19 @@ import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.DcMotorSimple
 import com.qualcomm.robotcore.hardware.HardwareMap
 import com.qualcomm.robotcore.hardware.IMU
+import dev.frozenmilk.dairy.mercurial.continuations.Closure
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
 import me.tatarka.inject.annotations.Inject
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit
-import org.firstinspires.ftc.teamcode.di.HardwareScope
-import org.firstinspires.ftc.teamcode.subsystems.interfaces.DriveSubsystem
-import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
-import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
+import org.firstinspires.ftc.teamcode.di.HardwareScoped
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.sin
 
 @Inject
-@SingleIn(HardwareScope::class)
-@ContributesBinding(HardwareScope::class)
-class MecanumSubsystem(hardwareMap: HardwareMap) : DriveSubsystem {
+@HardwareScoped
+class MecanumSubsystem(hardwareMap: HardwareMap) {
     private val frontLeft = hardwareMap.get(DcMotor::class.java, "leftFront").apply {
         zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
         direction = DcMotorSimple.Direction.REVERSE
@@ -59,7 +56,7 @@ class MecanumSubsystem(hardwareMap: HardwareMap) : DriveSubsystem {
      * @param yaw Rotation power (-1 to 1)
      * @param fieldRelative If true, controls are relative to field (driver perspective)
      */
-    override fun drive(axial: Double, lateral: Double, yaw: Double, fieldRelative: Boolean) {
+    fun drive(axial: Double, lateral: Double, yaw: Double, fieldRelative: Boolean = false) {
         var axialInput = axial
         var lateralInput = lateral
         
@@ -98,7 +95,7 @@ class MecanumSubsystem(hardwareMap: HardwareMap) : DriveSubsystem {
         backRight.power = backRightPower
     }
 
-    override fun stop() = exec {
+    fun stop(): Closure = exec {
         frontLeft.power = 0.0
         frontRight.power = 0.0
         backLeft.power = 0.0
@@ -112,7 +109,7 @@ class MecanumSubsystem(hardwareMap: HardwareMap) : DriveSubsystem {
         imu.resetYaw()
     }
     
-    override fun getHeadingDegrees(): Double {
+    fun getHeadingDegrees(): Double {
         return imu.robotYawPitchRollAngles.getYaw(AngleUnit.DEGREES)
     }
 }

@@ -131,9 +131,4 @@ dependencies {
     // kotlin-inject
     implementation(libs.kotlin.inject.runtime)
     ksp(libs.kotlin.inject.compiler)
-
-    // kotlin-inject-anvil
-    implementation(libs.kotlin.inject.anvil.runtime)
-    implementation(libs.kotlin.inject.anvil.runtime.optional)
-    ksp(libs.kotlin.inject.anvil.compiler)
 }

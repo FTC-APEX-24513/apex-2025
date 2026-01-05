@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.hardware.DcMotorController
 import com.qualcomm.robotcore.hardware.DcMotorSimple
 import com.qualcomm.robotcore.hardware.HardwareMap
 import dev.frozenmilk.dairy.mercurial.continuations.Actors
+import dev.frozenmilk.dairy.mercurial.continuations.Closure
 import dev.frozenmilk.dairy.mercurial.continuations.channels.Channels
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.loop
@@ -14,16 +15,12 @@ import dev.frozenmilk.dairy.mercurial.continuations.Continuations.sequence
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.wait
 import me.tatarka.inject.annotations.Inject
 import org.firstinspires.ftc.teamcode.constants.RobotConstants
-import org.firstinspires.ftc.teamcode.di.HardwareScope
-import org.firstinspires.ftc.teamcode.subsystems.interfaces.SpindexerSubsystem as ISpindexerSubsystem
-import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
-import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
+import org.firstinspires.ftc.teamcode.di.HardwareScoped
 import kotlin.math.abs
 
 @Inject
-@SingleIn(HardwareScope::class)
-@ContributesBinding(HardwareScope::class)
-class SpindexerSubsystem(hardwareMap: HardwareMap) : ISpindexerSubsystem {
+@HardwareScoped
+class SpindexerSubsystem(hardwareMap: HardwareMap) {
     private val servo = hardwareMap.get(CRServo::class.java, "spindexer") as DcMotorSimple
     private var currentPower = 0.0
     private var targetPosition = 0
@@ -99,11 +96,11 @@ class SpindexerSubsystem(hardwareMap: HardwareMap) : ISpindexerSubsystem {
             ).assertExhaustive()
     })
 
-    override fun advance() = Channels.send({ Command.Advance }, { actor.tx })
-    override fun kick() = Channels.send({ Command.Kick }, { actor.tx })
-    override fun stop() = Channels.send({ Command.Stop }, { actor.tx })
-    override fun rotateLeft() = Channels.send({ Command.RotateLeft }, { actor.tx })
-    override fun rotateRight() = Channels.send({ Command.RotateRight }, { actor.tx })
-    override fun setPower(power: Double) = Channels.send({ Command.SetPower(power) }, { actor.tx })
-    override fun setPower(power: () -> Double) = Channels.send({ Command.SetPower(power()) }, { actor.tx })
+    fun advance(): Closure = Channels.send({ Command.Advance }, { actor.tx })
+    fun kick(): Closure = Channels.send({ Command.Kick }, { actor.tx })
+    fun stop(): Closure = Channels.send({ Command.Stop }, { actor.tx })
+    fun rotateLeft(): Closure = Channels.send({ Command.RotateLeft }, { actor.tx })
+    fun rotateRight(): Closure = Channels.send({ Command.RotateRight }, { actor.tx })
+    fun setPower(power: Double): Closure = Channels.send({ Command.SetPower(power) }, { actor.tx })
+    fun setPower(power: () -> Double): Closure = Channels.send({ Command.SetPower(power()) }, { actor.tx })
 }

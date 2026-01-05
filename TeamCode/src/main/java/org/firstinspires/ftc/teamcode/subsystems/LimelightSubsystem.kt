@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.subsystems
 import com.qualcomm.hardware.limelightvision.Limelight3A
 import com.qualcomm.robotcore.hardware.HardwareMap
 import dev.frozenmilk.dairy.mercurial.continuations.Actors
+import dev.frozenmilk.dairy.mercurial.continuations.Closure
 import dev.frozenmilk.dairy.mercurial.continuations.channels.Channels
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.match
@@ -10,16 +11,12 @@ import me.tatarka.inject.annotations.Inject
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D
 import org.firstinspires.ftc.teamcode.constants.Alliance
 import org.firstinspires.ftc.teamcode.constants.ShootingConstants
-import org.firstinspires.ftc.teamcode.di.HardwareScope
+import org.firstinspires.ftc.teamcode.di.HardwareScoped
 import org.firstinspires.ftc.teamcode.physics.ShootingCalculator
-import org.firstinspires.ftc.teamcode.subsystems.interfaces.LimelightSubsystem as ILimelightSubsystem
-import software.amazon.lastmile.kotlin.inject.anvil.ContributesBinding
-import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 
 @Inject
-@SingleIn(HardwareScope::class)
-@ContributesBinding(HardwareScope::class)
-class LimelightSubsystem(hardwareMap: HardwareMap) : ILimelightSubsystem {
+@HardwareScoped
+class LimelightSubsystem(hardwareMap: HardwareMap) {
     private val limelight = hardwareMap.get(Limelight3A::class.java, "limelight").also {
         it.setPollRateHz(90)
         it.pipelineSwitch(Pipeline.APRILTAG.ordinal)
@@ -43,34 +40,34 @@ class LimelightSubsystem(hardwareMap: HardwareMap) : ILimelightSubsystem {
         }
     )
     
-    override fun useAprilTagPipeline() = Channels.send({ Pipeline.APRILTAG }, { actor.tx })
+    fun useAprilTagPipeline(): Closure = Channels.send({ Pipeline.APRILTAG }, { actor.tx })
 
-    override fun getTx(): Double {
+    fun getTx(): Double {
         val result = limelight.latestResult
         return if (result != null && result.isValid) result.tx else 0.0
     }
 
-    override fun getTy(): Double {
+    fun getTy(): Double {
         val result = limelight.latestResult
         return if (result != null && result.isValid) result.ty else 0.0
     }
     
-    override fun hasTarget(): Boolean {
+    fun hasTarget(): Boolean {
         val result = limelight.latestResult
         return result != null && result.isValid
     }
     
-    override fun updateRobotOrientation(yawDegrees: Double) {
+    fun updateRobotOrientation(yawDegrees: Double) {
         limelight.updateRobotOrientation(yawDegrees)
     }
     
-    override fun getBotPoseMT2(): Pose3D? {
+    fun getBotPoseMT2(): Pose3D? {
         val result = limelight.latestResult
         if (result == null || !result.isValid) return null
         return result.botpose_MT2
     }
     
-    override fun getDistance2DToGoal(alliance: Alliance): Double? {
+    fun getDistance2DToGoal(alliance: Alliance): Double? {
         val pose = getBotPoseMT2() ?: return null
 
         val robotX = pose.position.x

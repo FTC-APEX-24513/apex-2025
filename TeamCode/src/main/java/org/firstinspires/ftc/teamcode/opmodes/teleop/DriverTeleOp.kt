@@ -1,8 +1,5 @@
 package org.firstinspires.ftc.teamcode.opmodes.teleop
 
-import com.bylazar.configurables.PanelsConfigurables
-import com.bylazar.configurables.PanelsConfigurables.refreshClass
-import com.bylazar.telemetry.PanelsTelemetry
 import com.qualcomm.robotcore.hardware.Gamepad
 import com.qualcomm.robotcore.util.ElapsedTime
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
@@ -33,15 +30,31 @@ import kotlin.math.abs
  */
 @Suppress("UNUSED")
 val driverTeleOp = Mercurial.teleop {
-    val container = HardwareContainer::class.create(hardwareMap)
+    telemetry.addData("Was I alive?", "I WAS ALIVE!!!!!")
+    telemetry.update()
+    lateinit var container: HardwareContainer
+    try {
+        container = HardwareContainer::class.create(hardwareMap)
+    } catch (e: Exception) {
+        telemetry.addData("ERROR", "Failed to create HardwareContainer: ${e.message}")
+        telemetry.update()
+    }
+    telemetry.addData("Did I create a container?", "I CREATED A CONTAINER!!!!!")
+    telemetry.update()
 
     var alliance = Alliance.RED
     var fieldRelative = RobotConstants.FIELD_RELATIVE_ENABLED_DEFAULT
     val loopTimer = ElapsedTime()
 
+    telemetry.addData("Did I do stuff after the container?", "YES!!!!! Here: Alliance:${alliance.name}, fieldRelative: ${fieldRelative}, alive for ${loopTimer.seconds()}s")
+    telemetry.update()
+
     // ═══════════════════════════════════════════════════════
     // ALLIANCE SELECTION
     // ═══════════════════════════════════════════════════════
+
+    telemetry.addData("gearing up for alliance selection...", "GETTING READY!!!!!")
+    telemetry.update()
 
     schedule(scope {
         var upFiber by variable<Fiber?> { null }
