@@ -2,70 +2,55 @@ package org.firstinspires.ftc.teamcode.subsystems
 
 import com.qualcomm.robotcore.hardware.HardwareMap
 import com.qualcomm.robotcore.hardware.Servo
-import dev.frozenmilk.dairy.mercurial.continuations.Actors
 import dev.frozenmilk.dairy.mercurial.continuations.Closure
-import dev.frozenmilk.dairy.mercurial.continuations.channels.Channels
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
-import dev.frozenmilk.dairy.mercurial.continuations.Continuations.match
 import me.tatarka.inject.annotations.Inject
+import org.firstinspires.ftc.teamcode.constants.RobotConstants
 import org.firstinspires.ftc.teamcode.di.HardwareScoped
 
 @Inject
 @HardwareScoped
-class TransferSubsystem(hardwareMap: HardwareMap) {
+class TransferSubsystem(hardwareMap: HardwareMap) : Subsystem() {
     private val servo = hardwareMap.get(Servo::class.java, "transfer")
-    private var targetPosition = DEFAULT_POSITION
-    
-    enum class State {
-        DEFAULT, TRANSFERRING
+
+    sealed interface State {
+        object Default : State
+        data class AtPosition(val position: Double) : State
     }
-    
-    sealed class Command {
-        object Transfer : Command()
-        object Reset : Command()
-        data class SetPosition(val position: Double) : Command()
-    }
-    
-    private val actor = Actors.actor<State, Command>(
-        { State.DEFAULT },
-        { _, cmd ->
-            // Update target position based on command
-            when (cmd) {
-                is Command.Transfer -> {
-                    targetPosition = TRANSFER_POSITION
-                    State.TRANSFERRING
-                }
-                is Command.Reset -> {
-                    targetPosition = DEFAULT_POSITION
-                    State.DEFAULT
-                }
-                is Command.SetPosition -> {
-                    targetPosition = cmd.position
-                    State.TRANSFERRING
-                }
-            }
-        },
-        { stateRegister ->
-            match(stateRegister)
-                .branch(
-                    State.DEFAULT,
-                    exec { servo.position = DEFAULT_POSITION }
-                )
-                .branch(
-                    State.TRANSFERRING,
-                    exec { servo.position = targetPosition }
-                )
-                .assertExhaustive()
+
+    var state: State = State.Default
+        private set
+
+    override fun periodic(): Closure = exec {
+        servo.position = when (val s = state) {
+            is State.Default -> RobotConstants.TRANSFER_DEFAULT_POSITION
+            is State.AtPosition -> s.position
         }
-    )
-    
-    fun transfer(): Closure = Channels.send({ Command.Transfer }, { actor.tx })
-    fun reset(): Closure = Channels.send({ Command.Reset }, { actor.tx })
-    fun setPosition(position: Double): Closure = Channels.send({ Command.SetPosition(position) }, { actor.tx })
-    fun setPosition(position: () -> Double): Closure = Channels.send({ Command.SetPosition(position()) }, { actor.tx })
-    
-    companion object {
-        private const val DEFAULT_POSITION = 0.2639
-        private const val TRANSFER_POSITION = 0.8
+    }
+
+    /**
+     * Get the current target position of the servo.
+     */
+    fun getTargetPosition(): Double = when (val s = state) {
+        is State.Default -> RobotConstants.TRANSFER_DEFAULT_POSITION
+        is State.AtPosition -> s.position
+    }
+
+    /**
+     * Increment the position by a delta (for tuning).
+     */
+    fun adjustPosition(delta: Double): Closure = exec {
+        val current = getTargetPosition()
+        state = State.AtPosition((current + delta).coerceIn(0.0, 1.0))
+    }
+
+    // Commands
+    fun transfer(): Closure = exec { state = State.AtPosition(RobotConstants.TRANSFER_TRANSFER_POSITION) }
+    fun reset(): Closure = exec { state = State.Default }
+    fun setPosition(position: Double): Closure = exec { state = State.AtPosition(position.coerceIn(0.0, 1.0)) }
+
+    // Direct state setter for continuous control (e.g., joystick)
+    fun setPositionDirect(position: Double) {
+        state = State.AtPosition(position.coerceIn(0.0, 1.0))
     }
 }

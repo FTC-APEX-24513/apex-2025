@@ -6,7 +6,9 @@ import com.pedropathing.ftc.FollowerBuilder;
 import com.pedropathing.ftc.drivetrains.MecanumConstants;
 import com.pedropathing.ftc.localization.Encoder;
 import com.pedropathing.ftc.localization.constants.ThreeWheelConstants;
+import com.pedropathing.ftc.localization.constants.ThreeWheelIMUConstants;
 import com.pedropathing.paths.PathConstraints;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
@@ -16,29 +18,38 @@ public class Constants {
             ;
 
     public static MecanumConstants driveConstants = new MecanumConstants()
-            .maxPower(1)
+            .maxPower(0.1)
             .leftFrontMotorName("leftFront") // Port 0
-            .rightRearMotorName("rightRear") // Port 1
-            .leftRearMotorName("leftRear") // Port 2
+            .rightRearMotorName("rightRear") // Port 2
+            .leftRearMotorName("leftRear") // Port 1
             .rightFrontMotorName("rightFront") // Port 3
             .leftFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
             .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE)
             .rightFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
-            .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD);
+            .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD)
+        ;
 
-    public static ThreeWheelConstants localizerConstants = new ThreeWheelConstants()
-            .forwardTicksToInches(0.15698020096615317)
-            .strafeTicksToInches(0.04444467342803911)
-            .turnTicksToInches(0.004329341891969647)
+    public static RevHubOrientationOnRobot imuOrientation = new RevHubOrientationOnRobot(
+            RevHubOrientationOnRobot.LogoFacingDirection.UP,
+            RevHubOrientationOnRobot.UsbFacingDirection.BACKWARD
+    );
+
+    public static ThreeWheelIMUConstants localizerConstants = new ThreeWheelIMUConstants()
+            .forwardTicksToInches(-.001991504962633513)
+            .strafeTicksToInches(.001993934146752316)
+            .turnTicksToInches(.004304132605789478)
             .leftPodY(3.418503937) // in inches
             .rightPodY(-3.3877952756) // in inches
             .strafePodX(-4.0962598425) // in inches
             .leftEncoder_HardwareMapName("leftFront") // Port 0
-            .rightEncoder_HardwareMapName("rightRear") // Port 1
-            .strafeEncoder_HardwareMapName("rightFront") // Port 3
+            .rightEncoder_HardwareMapName("rightFront") // Port 2
+            .strafeEncoder_HardwareMapName("rightRear") // Port 3
             .leftEncoderDirection(Encoder.REVERSE)
             .rightEncoderDirection(Encoder.REVERSE)
-            .strafeEncoderDirection(Encoder.FORWARD);
+            .strafeEncoderDirection(Encoder.REVERSE)
+            .IMU_HardwareMapName("imu")
+            .IMU_Orientation(imuOrientation)
+    ;
 
     public static PathConstraints pathConstraints = new PathConstraints(0.99, 100, 1, 1);
 
@@ -46,7 +57,7 @@ public class Constants {
         return new FollowerBuilder(followerConstants, hardwareMap)
                 .pathConstraints(pathConstraints)
                 .mecanumDrivetrain(driveConstants)
-                .threeWheelLocalizer(localizerConstants)
-                .build();
+                .threeWheelIMULocalizer(localizerConstants)
+            .build();
     }
 }

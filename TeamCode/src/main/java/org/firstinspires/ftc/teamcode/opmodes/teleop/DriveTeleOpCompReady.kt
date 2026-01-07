@@ -35,7 +35,7 @@ import kotlin.math.abs
  * - Left/Right Bumpers (hold): Spindexer rotate continuously
  */
 @Suppress("UNUSED")
-val driverTeleOp = Mercurial.teleop {
+val driverTeleOpCompReady = Mercurial.teleop {
     val panels = PanelsTelemetry.telemetry
 
     // Create hardware container
@@ -69,36 +69,7 @@ val driverTeleOp = Mercurial.teleop {
                 panels.debug("=== ALLIANCE SELECTION ===")
                 panels.addData("Selected", if (alliance == Alliance.BLUE) "BLUE" else "RED")
                 panels.debug("D-PAD: Up=Blue | Down=Red")
-                
-                // === CONFIGURABLE CONSTANTS ===
-                panels.debug("")
-                panels.debug("=== INTAKE CONSTANTS ===")
-                panels.addData("Collect Power", RobotConstants.INTAKE_COLLECT_POWER)
-                panels.addData("Eject Power", RobotConstants.INTAKE_EJECT_POWER)
-                panels.addData("Trigger Threshold", RobotConstants.INTAKE_TRIGGER_THRESHOLD)
-                
-                panels.debug("")
-                panels.debug("=== OUTTAKE CONSTANTS ===")
-                panels.addData("Ticks/Rev", RobotConstants.OUTTAKE_TICKS_PER_REVOLUTION)
-                panels.addData("RPM P Gain", RobotConstants.OUTTAKE_RPM_PROPORTIONAL_GAIN)
-                panels.addData("Default RPM", RobotConstants.OUTTAKE_DEFAULT_SPINUP_RPM)
-                panels.addData("Launch Duration", RobotConstants.OUTTAKE_LAUNCH_DURATION)
-                
-                panels.debug("")
-                panels.debug("=== SPINDEXER CONSTANTS ===")
-                panels.addData("Ticks/Pos", RobotConstants.SPINDEXER_TICKS_PER_POSITION)
-                panels.addData("Rotation Power", RobotConstants.SPINDEXER_ROTATION_POWER)
-                
-                panels.debug("")
-                panels.debug("=== TRANSFER CONSTANTS ===")
-                panels.addData("Default Pos", RobotConstants.TRANSFER_DEFAULT_POSITION)
-                panels.addData("Transfer Pos", RobotConstants.TRANSFER_TRANSFER_POSITION)
-                panels.addData("Position Inc", RobotConstants.TRANSFER_POSITION_INCREMENT)
-                
-                panels.debug("")
-                panels.debug("=== DRIVE CONSTANTS ===")
-                panels.addData("Deadzone", RobotConstants.DRIVE_DEADZONE)
-                
+
                 panels.update(telemetry)
             }),
             exec {
@@ -228,7 +199,7 @@ val driverTeleOp = Mercurial.teleop {
     // Spindexer - Bumpers (hold to continuously rotate, stops when released)
     bindWhileTrue({ gamepad1.right_bumper }, container.spindexer.continuousRight())
     bindWhileTrue({ gamepad1.left_bumper }, container.spindexer.continuousLeft())
-    
+
     // Stop spindexer when bumpers released
     bindSpawn(risingEdge { !gamepad1.right_bumper }, container.spindexer.stop())
     bindSpawn(risingEdge { !gamepad1.left_bumper }, container.spindexer.stop())
@@ -236,10 +207,10 @@ val driverTeleOp = Mercurial.teleop {
     // Transfer Controls
     // B - Go to transfer position
     bindSpawn(risingEdge { gamepad1.b }, container.transfer.transfer())
-    
+
     // X - Reset to default position
     bindSpawn(risingEdge { gamepad1.x }, container.transfer.reset())
-    
+
     // D-Pad Up/Down - Fine tune transfer position (for testing)// Intake - Left Trigger
     //    bindSpawn(
     //        risingEdge { gamepad1.left_trigger > RobotConstants.INTAKE_TRIGGER_THRESHOLD },
@@ -250,11 +221,11 @@ val driverTeleOp = Mercurial.teleop {
     //        container.intake.stop()
     //    )
     bindSpawn(
-        risingEdge { gamepad1.dpad_up }, 
+        risingEdge { gamepad1.dpad_up },
         container.transfer.adjustPosition(RobotConstants.TRANSFER_POSITION_INCREMENT)
     )
     bindSpawn(
-        risingEdge { gamepad1.dpad_down }, 
+        risingEdge { gamepad1.dpad_down },
         container.transfer.adjustPosition(-RobotConstants.TRANSFER_POSITION_INCREMENT)
     )
 

@@ -2,6 +2,11 @@ package org.firstinspires.ftc.teamcode.di
 
 import com.pedropathing.follower.Follower
 import com.qualcomm.robotcore.hardware.HardwareMap
+import dev.frozenmilk.dairy.mercurial.continuations.Closure
+import dev.frozenmilk.dairy.mercurial.continuations.Continuations.loop
+import dev.frozenmilk.dairy.mercurial.continuations.Continuations.sequence
+import dev.frozenmilk.dairy.mercurial.continuations.Fiber
+import dev.frozenmilk.dairy.mercurial.continuations.Scheduler
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Provides
 import me.tatarka.inject.annotations.Scope
@@ -20,28 +25,31 @@ annotation class HardwareScoped
  * Main Dependency Injection container for the robot.
  *
  * Usage in OpMode:
+ * ```kotlin
+ * val teleOp = Mercurial.teleop {
+ *     val container = HardwareContainer::class.create(hardwareMap)
+ *     
+ *     // Schedule periodic updates for all subsystems (runs sequentially each loop)
+ *     schedule(container.periodicLoop())
+ *     
+ *     // Use subsystems
+ *     bindSpawn(risingEdge { gamepad1.a }, container.intake.collect())
+ *     
+ *     dropToScheduler()
+ * }
  * ```
- * val container = HardwareContainer.create(hardwareMap)
- * ```
- *
- * Uses plain kotlin-inject with @Inject annotations on subsystem classes.
- * This avoids classloader conflicts with Mercurial/Dairy's SlothClassLoader.
  */
 @Component
 @HardwareScoped
-abstract class HardwareContainer(@get:Provides val hardwareMap: HardwareMap) {
+abstract class HardwareContainer(@get:Provides val hardwareMap: HardwareMap, @get:Provides val scheduler: Scheduler) {
     
-    /**
-     * Provider for Pedro Pathing Follower.
-     * Creates and configures the Follower instance for odometry.
-     */
     @Provides
     @HardwareScoped
     fun provideFollower(hardwareMap: HardwareMap): Follower {
         return Constants.createFollower(hardwareMap)
     }
     
-    // Subsystems are automatically provided via @Inject constructors
+    // Subsystems
     abstract val drive: MecanumSubsystem
     abstract val intake: IntakeSubsystem
     abstract val outtake: OuttakeSubsystem
@@ -49,6 +57,24 @@ abstract class HardwareContainer(@get:Provides val hardwareMap: HardwareMap) {
     abstract val spindexer: SpindexerSubsystem
     abstract val transfer: TransferSubsystem
     abstract val follower: Follower
+    
+    /**
+     * Returns a Closure that runs all subsystem periodics sequentially in a loop.
+     * Schedule this once in your OpMode to enable automatic subsystem updates.
+     * 
+     * Subsystems are updated in a fixed, deterministic order:
+     * drive -> intake -> outtake -> spindexer -> transfer -> limelight
+     */
+    fun startPeriodic(): Fiber = scheduler.schedule(loop({ true },
+        sequence(
+            drive.periodic(),
+            intake.periodic(),
+            outtake.periodic(),
+            spindexer.periodic(),
+            transfer.periodic(),
+            limelight.periodic()
+        )
+    ).intoContinuation())
 
     companion object
 }
