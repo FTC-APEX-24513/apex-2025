@@ -1,23 +1,22 @@
 package org.firstinspires.ftc.teamcode.subsystems
 
-import com.qualcomm.hardware.rev.RevHubOrientationOnRobot
 import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.DcMotorSimple
 import com.qualcomm.robotcore.hardware.HardwareMap
 import com.qualcomm.robotcore.hardware.IMU
 import dev.frozenmilk.dairy.mercurial.continuations.Closure
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
+import dev.frozenmilk.dairy.mercurial.continuations.Continuations.noop
 import me.tatarka.inject.annotations.Inject
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit
 import org.firstinspires.ftc.teamcode.di.HardwareScoped
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants
 import kotlin.math.abs
-import kotlin.math.cos
 import kotlin.math.max
-import kotlin.math.sin
 
 @Inject
 @HardwareScoped
-class MecanumSubsystem(hardwareMap: HardwareMap) {
+class MecanumSubsystem(hardwareMap: HardwareMap) : Subsystem() {
     private val frontLeft = hardwareMap.get(DcMotor::class.java, "leftFront").apply {
         zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
         direction = DcMotorSimple.Direction.REVERSE
@@ -34,50 +33,24 @@ class MecanumSubsystem(hardwareMap: HardwareMap) {
         zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
         direction = DcMotorSimple.Direction.FORWARD
     }
-    
-    // IMU for field-relative drive
+
     private val imu = hardwareMap.get(IMU::class.java, "imu").apply {
-        initialize(
-            IMU.Parameters(
-                RevHubOrientationOnRobot(
-                    RevHubOrientationOnRobot.LogoFacingDirection.UP,
-                    RevHubOrientationOnRobot.UsbFacingDirection.FORWARD
-                )
-            )
-        )
+        initialize(IMU.Parameters(Constants.imuOrientation))
     }
+
+    // Drive is called directly, no periodic needed
+    override fun periodic(): Closure = noop()
 
     /**
      * Drive the robot using mecanum kinematics.
-     * Supports both robot-relative and field-relative control modes.
-     *
-     * @param axial Forward/backward power (-1 to 1)
-     * @param lateral Left/right strafe power (-1 to 1)
-     * @param yaw Rotation power (-1 to 1)
-     * @param fieldRelative If true, controls are relative to field (driver perspective)
      */
-    fun drive(axial: Double, lateral: Double, yaw: Double, fieldRelative: Boolean = false) {
-        var axialInput = axial
-        var lateralInput = lateral
-        
-        // Field-relative transformation if enabled
-        if (fieldRelative) {
-            val heading = imu.robotYawPitchRollAngles.getYaw(AngleUnit.RADIANS)
-            val cosHeading = cos(-heading)  // Negative because IMU yaw is opposite
-            val sinHeading = sin(-heading)
-            
-            // Rotate input vector by heading
-            axialInput = axial * cosHeading - lateral * sinHeading
-            lateralInput = axial * sinHeading + lateral * cosHeading
-        }
-        
-        // Mecanum kinematics
-        var frontLeftPower = axialInput + lateralInput + yaw
-        var frontRightPower = axialInput - lateralInput - yaw
-        var backLeftPower = axialInput - lateralInput + yaw
-        var backRightPower = axialInput + lateralInput - yaw
+    fun drive(axial: Double, lateral: Double, yaw: Double) {
+        var frontLeftPower = axial + lateral + yaw
+        var frontRightPower = axial - lateral - yaw
+        var backLeftPower = axial - lateral + yaw
+        var backRightPower = axial + lateral - yaw
 
-        // Normalize the values so no wheel power exceeds 100%
+        // Normalize
         var maxPower = max(abs(frontLeftPower), abs(frontRightPower))
         maxPower = max(maxPower, abs(backLeftPower))
         maxPower = max(maxPower, abs(backRightPower))
@@ -101,14 +74,11 @@ class MecanumSubsystem(hardwareMap: HardwareMap) {
         backLeft.power = 0.0
         backRight.power = 0.0
     }
-    
-    /**
-     * Reset IMU yaw to zero. Useful for setting current heading as "forward".
-     */
+
     fun resetHeading() {
         imu.resetYaw()
     }
-    
+
     fun getHeadingDegrees(): Double {
         return imu.robotYawPitchRollAngles.getYaw(AngleUnit.DEGREES)
     }

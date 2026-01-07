@@ -10,12 +10,10 @@ plugins {
 android {
     namespace = "com.qualcomm.ftcrobotcontroller"
 
-    compileSdk = 30
+    compileSdk = 36
 
     defaultConfig {
-        minSdkVersion(24)
-        //noinspection ExpiredTargetSdkVersion
-        targetSdkVersion(28)
+        minSdk = 24
         buildConfigField(
             "String", "APP_BUILD_TIME", '"' + (SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.ROOT).format(
                 Date()
@@ -23,28 +21,38 @@ android {
         )
     }
 
+    lint {
+        targetSdk = 28
+    }
+
+    testOptions {
+        targetSdk = 28
+    }
+
     buildFeatures {
         buildConfig = true
     }
 
-
-
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
+}
 
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+    }
 }
 
 dependencies {
 
-    implementation(libs.core.ktx)
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
+    implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     testImplementation(libs.junit)
-    androidTestImplementation(libs.ext.junit)
+    androidTestImplementation(libs.junit.ext)
 
     implementation(libs.ftc.inspection)
     implementation(libs.ftc.blocks)
@@ -52,7 +60,7 @@ dependencies {
     implementation(libs.ftc.robotserver)
     implementation(libs.ftc.onbotjava)
     implementation(libs.ftc.hardware)
-    implementation(libs.ftc.ftccommon)
+    implementation(libs.ftc.common)
     implementation(libs.ftc.vision)
 
 }

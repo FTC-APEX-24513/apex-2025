@@ -53,7 +53,7 @@ fun HardwareContainer.autoAlign(): Closure = scope {
         val turn = -(RobotConstants.ALIGNMENT_KP * tx + RobotConstants.ALIGNMENT_KD * (tx - lastError))
         lastError = tx
 
-        drive.drive(0.0, 0.0, turn, false)
+        drive.drive(0.0, 0.0, turn)
     }), exec { drive.stop() })
 }
 
@@ -108,8 +108,6 @@ fun HardwareContainer.shoot(alliance: Alliance): Closure = scope {
         // Spin up and fire
         outtake.spinToRPM(rpm), wait { outtake.isAtTargetSpeed(rpm) },
 
-        spindexer.kick(), wait(0.2),
-
         // Auto-spindown after delay
         exec {
             spindown?.let { Fiber.CANCEL(it) }
@@ -150,9 +148,6 @@ fun HardwareContainer.continuousShoot(alliance: Alliance): Closure = scope {
             { true }, sequence(
                 // Spin up to target RPM
                 outtake.spinToRPM(rpm), wait { outtake.isAtTargetSpeed(rpm) },
-
-                // Fire
-                spindexer.kick(), wait(0.2),
 
                 exec { shotCount++ },
 

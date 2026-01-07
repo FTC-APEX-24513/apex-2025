@@ -1,42 +1,78 @@
 [versions]
-agp = "8.11.0"
-ftc = "11.0.0"
-gradle = "8.7.0"
-kotlin = "2.0.21"
-ksp = "2.0.21-1.0.28"
-kotlinInject = "0.7.2"
-junit = "4.13.2"
-coreKtx = "1.6.0"
-junitVersion = "1.1.5"
+# Android
+agp = "8.11.2"
 appcompat = "1.2.0"
-pedroPathing = "2.0.2"
-pedroTelemetry = "1.0.0"
-fullpanels = "1.0.6"
+coreKtx = "1.6.0"
+desugar = "2.1.4"
+gradle = "8.7.0"
+
+# Dairy (FrozenMilk)
 mercurial = "2.0.0-beta9"
+sloth = "0.2.4"
+
+# FTC
+ftc = "11.0.0"
+
+# Kotlin
+kotlin = "2.3.0"
+kotlinInject = "0.7.2"
+ksp = "2.3.4"
+
+# Pedro Pathing
+pedroPathing = "2.0.5"
+pedroTelemetry = "1.0.0"
+
+# Testing
+junit = "4.13.2"
+junitExt = "1.3.0"
+
+# Third Party
+fullpanels = "1.0.6"
 
 [libraries]
-ftc-inspection = { module = "org.firstinspires.ftc:Inspection", version.ref = "ftc" }
+# Android
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar" }
+gradle = { module = "com.android.tools.build:gradle", version.ref = "gradle" }
+
+# Dairy (FrozenMilk)
+dairy-mercurial = { module = "dev.frozenmilk.dairy:MercurialFTC", version.ref = "mercurial" }
+dairy-sloth = { module = "dev.frozenmilk.dairy:Sloth", version.ref = "sloth" }
+
+# FTC
 ftc-blocks = { module = "org.firstinspires.ftc:Blocks", version.ref = "ftc" }
+ftc-common = { module = "org.firstinspires.ftc:FtcCommon", version.ref = "ftc" }
+ftc-hardware = { module = "org.firstinspires.ftc:Hardware", version.ref = "ftc" }
+ftc-inspection = { module = "org.firstinspires.ftc:Inspection", version.ref = "ftc" }
+ftc-onbotjava = { module = "org.firstinspires.ftc:OnBotJava", version.ref = "ftc" }
 ftc-robotcore = { module = "org.firstinspires.ftc:RobotCore", version.ref = "ftc" }
 ftc-robotserver = { module = "org.firstinspires.ftc:RobotServer", version.ref = "ftc" }
-ftc-onbotjava = { module = "org.firstinspires.ftc:OnBotJava", version.ref = "ftc" }
-ftc-hardware = { module = "org.firstinspires.ftc:Hardware", version.ref = "ftc" }
-ftc-ftccommon = { module = "org.firstinspires.ftc:FtcCommon", version.ref = "ftc" }
 ftc-vision = { module = "org.firstinspires.ftc:Vision", version.ref = "ftc" }
-gradle = { module = "com.android.tools.build:gradle", version.ref = "gradle" }
-pedro-pathing-ftc = { module = "com.pedropathing:ftc", version.ref = "pedroPathing" }
-pedro-pathing-telemetry = { module = "com.pedropathing:telemetry", version.ref = "pedroTelemetry" }
-bylazar-fullpanels = { module = "com.bylazar:fullpanels", version.ref = "fullpanels" }
-dairy-mercurial = { module = "dev.frozenmilk.dairy:MercurialFTC", version.ref = "mercurial" }
-kotlin-inject-runtime = { module = "me.tatarka.inject:kotlin-inject-runtime", version.ref = "kotlinInject" }
+
+# Kotlin
 kotlin-inject-compiler = { module = "me.tatarka.inject:kotlin-inject-compiler-ksp", version.ref = "kotlinInject" }
-junit = { group = "junit", name = "junit", version.ref = "junit" }
-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
-androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+kotlin-inject-runtime = { module = "me.tatarka.inject:kotlin-inject-runtime", version.ref = "kotlinInject" }
+
+# Pedro Pathing
+pedro-pathing = { module = "com.pedropathing:ftc", version.ref = "pedroPathing" }
+pedro-telemetry = { module = "com.pedropathing:telemetry", version.ref = "pedroTelemetry" }
+
+# Testing
+junit = { module = "junit:junit", version.ref = "junit" }
+junit-ext = { module = "androidx.test.ext:junit", version.ref = "junitExt" }
+
+# Third Party
+fullpanels = { module = "com.bylazar:fullpanels", version.ref = "fullpanels" }
 
 [plugins]
+# Android
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 android-library = { id = "com.android.library", version.ref = "agp" }
+
+# Dairy (FrozenMilk)
+dairy-sloth-load = { id = "dev.frozenmilk.sinister.sloth.load", version.ref = "sloth" }
+
+# Kotlin
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

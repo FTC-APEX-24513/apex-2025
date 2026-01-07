@@ -1,7 +1,10 @@
+import java.util.regex.Pattern
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.dairy.sloth.load)
 }
 
 repositories {
@@ -39,9 +42,9 @@ android {
     defaultConfig {
         signingConfig = signingConfigs.getByName("debug")
         applicationId = "com.qualcomm.ftcrobotcontroller"
-        minSdkVersion(24)
+        minSdk = 24
         //noinspection ExpiredTargetSdkVersion
-        targetSdkVersion(28)
+        targetSdk = 28
 
         /**
          * We keep the versionCode and versionName of robot controller applications in sync with
@@ -55,21 +58,21 @@ android {
          * @see <a href="http://developer.android.com/tools/building/configuring-gradle.html">Configure Your Build</a>
          * @see <a href="http://developer.android.com/tools/publishing/versioning.html">Versioning Your App</a>
          */
-//        val manifestFile = project(":FtcRobotController").file("src/main/AndroidManifest.xml");
-//        val manifestText = manifestFile.getText()
-//        //
-//        val vCodePattern = Pattern.compile("versionCode=\"(\\d+(\\.\\d+)*)\"")
-//        val matcher = vCodePattern.matcher(manifestText)
-//        matcher.find()
-//        val vCode = Integer.parseInt(matcher.group(1))
-//        //
-//        val vNamePattern = Pattern.compile("versionName=\"(.*)\"")
-//        matcher = vNamePattern.matcher(manifestText);
-//        matcher.find()
-//        val vName = matcher.group(1)
-//        //
-//        versionCode = vCode
-//        versionName = vName
+        val manifestFile = project(":FtcRobotController").file("src/main/AndroidManifest.xml")
+        val manifestText = manifestFile.readText()
+        //
+        val vCodePattern = Pattern.compile("versionCode=\"(\\d+(\\.\\d+)*)\"")
+        var matcher = vCodePattern.matcher(manifestText)
+        matcher.find()
+        val vCode = Integer.parseInt(matcher.group(1))
+        //
+        val vNamePattern = Pattern.compile("versionName=\"(.*)\"")
+        matcher = vNamePattern.matcher(manifestText);
+        matcher.find()
+        val vName = matcher.group(1)
+        //
+        versionCode = vCode
+        versionName = vName
     }
 
     // http://google.github.io/android-gradle-dsl/current/com.android.build.gradle.internal.dsl.BuildType.html
@@ -90,12 +93,9 @@ android {
     }
 
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    kotlinOptions {
-        jvmTarget = "11"
     }
 
     ndkVersion = "21.3.6528147"
@@ -104,31 +104,45 @@ android {
     packagingOptions.jniLibs.pickFirsts.add("**/*.so")
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+    }
+}
+
 dependencies {
-
-    implementation(libs.core.ktx)
+    // Android
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(libs.androidx.appcompat)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.ext.junit)
+    implementation(libs.androidx.core.ktx)
 
-    implementation(project(":FtcRobotController"))
-    annotationProcessor(files("lib/OpModeAnnotationProcessor.jar"))
-
-    implementation(libs.ftc.inspection)
-    implementation(libs.ftc.blocks)
-    implementation(libs.ftc.robotcore)
-    implementation(libs.ftc.robotserver)
-    implementation(libs.ftc.onbotjava)
-    implementation(libs.ftc.hardware)
-    implementation(libs.ftc.ftccommon)
-    implementation(libs.ftc.vision)
-
-    implementation(libs.pedro.pathing.ftc)
-    implementation(libs.pedro.pathing.telemetry)
-    implementation(libs.bylazar.fullpanels)
+    // Dairy (FrozenMilk)
     implementation(libs.dairy.mercurial)
 
-    // kotlin-inject
+    // FTC
+    annotationProcessor(files("lib/OpModeAnnotationProcessor.jar"))
+    implementation(project(":FtcRobotController"))
+    implementation(libs.ftc.blocks)
+    implementation(libs.ftc.common)
+    implementation(libs.ftc.hardware)
+    implementation(libs.ftc.inspection)
+    implementation(libs.ftc.onbotjava)
+    implementation(libs.ftc.robotcore)
+    implementation(libs.ftc.robotserver)
+    implementation(libs.ftc.vision)
+
+    // Kotlin
     implementation(libs.kotlin.inject.runtime)
     ksp(libs.kotlin.inject.compiler)
+
+    // Pedro Pathing
+    implementation(libs.pedro.pathing)
+    implementation(libs.pedro.telemetry)
+
+    // Testing
+    androidTestImplementation(libs.junit.ext)
+    testImplementation(libs.junit)
+
+    // Panels
+    implementation(libs.fullpanels)
 }
