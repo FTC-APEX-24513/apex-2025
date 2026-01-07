@@ -47,7 +47,7 @@ val driverTeleOp = Mercurial.teleop {
     val loopTimer = ElapsedTime()
 
     // ═══════════════════════════════════════════════════════
-    // ALLIANCE SELECTION (during init)
+    // ALLIANCE SELECTION (during init).    
     // ═══════════════════════════════════════════════════════
 
     schedule(scope {
