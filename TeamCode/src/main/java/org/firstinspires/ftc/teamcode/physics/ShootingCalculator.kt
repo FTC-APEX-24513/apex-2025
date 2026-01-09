@@ -24,8 +24,7 @@ object ShootingCalculator {
     ): Double? {
         val heightDiff = ShootingConstants.GOAL_TOP_LIP_HEIGHT_METERS -
                         ShootingConstants.LAUNCH_HEIGHT_METERS
-        
-        // Horizontal launch (optimized - removed angled shot logic)
+
         // Use quadratic formula for time of flight
         // Vertical motion: h(t) = h0 + v_y*t - 0.5*g*t²
         // At landing: 0 = heightDiff + v_y*t - 0.5*g*t²

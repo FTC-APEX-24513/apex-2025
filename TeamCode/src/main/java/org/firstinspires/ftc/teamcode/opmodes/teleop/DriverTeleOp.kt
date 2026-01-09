@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.opmodes.teleop
 
-import com.bylazar.telemetry.PanelsTelemetry
+import com.acmerobotics.dashboard.FtcDashboard
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry
 import com.qualcomm.robotcore.hardware.Gamepad
 import com.qualcomm.robotcore.util.ElapsedTime
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
@@ -9,14 +10,14 @@ import dev.frozenmilk.dairy.mercurial.continuations.Continuations.scope
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.sequence
 import dev.frozenmilk.dairy.mercurial.continuations.Fiber
 import dev.frozenmilk.dairy.mercurial.ftc.Mercurial
-import org.firstinspires.ftc.teamcode.commands.*
+import org.firstinspires.ftc.teamcode.commands.getGoalDistance
 import org.firstinspires.ftc.teamcode.constants.Alliance
-import org.firstinspires.ftc.teamcode.constants.RobotConstants
+import org.firstinspires.ftc.teamcode.constants.ShootingConstants
 import org.firstinspires.ftc.teamcode.di.HardwareContainer
 import org.firstinspires.ftc.teamcode.di.create
 import org.firstinspires.ftc.teamcode.physics.ShootingCalculator
 import org.firstinspires.ftc.teamcode.subsystems.OuttakeSubsystem
-import kotlin.math.abs
+import org.firstinspires.ftc.teamcode.subsystems.SpindexerSubsystem
 
 /**
  * Main TeleOp for DECODE competition.
@@ -24,27 +25,44 @@ import kotlin.math.abs
  * Controls:
  * - Left Stick: Drive (forward/strafe)
  * - Right Stick X: Turn
- * - Left Trigger: Intake collect
- * - Right Trigger: Flywheel speed (manual)
- * - A Button: Fire
- * - B Button: Transfer to transfer position
- * - X Button: Reset transfer to default
- * - Y Button (hold): Adjust transfer up
- * - D-Pad Up/Down (Init): Alliance selection
- * - D-Pad Up/Down (Loop): Adjust transfer position
- * - Left/Right Bumpers (hold): Spindexer rotate continuously
+ * 
+ * - Right Bumper: Intake (auto-spins spindexer to next intake position)
+ * - Right Trigger: Surgical tubes only (intake rollers)
+ * 
+ * - Left Bumper: Limelight outtake (lock RPM from distance)
+ * - Left Trigger: Manual flywheel power
+ * 
+ * - D-Pad Up: Manual transfer up
+ * - D-Pad Down: Manual transfer down
+ * - D-Pad Right: Spindexer rotate right
+ * - D-Pad Left: Spindexer rotate left
+ * 
+ * - Triangle (Y): Localize (update pose from AprilTag)
+ * - X (A on Xbox): Kick out from spindexer (eject)
+ * - Square (X on Xbox): Toggle spindexer mode (Intake <-> Outtake)
+ * 
+ * Controller LED:
+ * - Indigo: Intake mode active
+ * - Orange: Outtake mode active
+ * 
+ * Vibration: Vibrates when in shooting zone
+ * 
+ * Init Controls:
+ * - D-Pad Up/Down: Alliance selection (Blue/Red)
  */
 @Suppress("UNUSED")
 val driverTeleOp = Mercurial.teleop {
-    val panels = PanelsTelemetry.telemetry
+    val telemetryA = MultipleTelemetry(telemetry, FtcDashboard.getInstance().telemetry)
 
-    // Create hardware container
     val container = HardwareContainer::class.create(hardwareMap, scheduler).also {
         it.startPeriodic()
     }
 
     var alliance = Alliance.RED
     val loopTimer = ElapsedTime()
+    
+    // Transfer position adjustment
+    val transferDelta = 0.02
 
     // ═══════════════════════════════════════════════════════
     // ALLIANCE SELECTION (during init)
@@ -56,6 +74,11 @@ val driverTeleOp = Mercurial.teleop {
 
         sequence(
             exec {
+                if (alliance == Alliance.BLUE) {
+                    gamepad1.setLedColor(0.0, 0.0, 1.0, Gamepad.LED_DURATION_CONTINUOUS)
+                } else {
+                    gamepad1.setLedColor(1.0, 0.0, 0.0, Gamepad.LED_DURATION_CONTINUOUS)
+                }
                 upFiber = bindSpawn(risingEdge { gamepad1.dpad_up }, exec {
                     alliance = Alliance.BLUE
                     gamepad1.setLedColor(0.0, 0.0, 1.0, Gamepad.LED_DURATION_CONTINUOUS)
@@ -66,40 +89,10 @@ val driverTeleOp = Mercurial.teleop {
                 })
             },
             loop({ inInit }, exec {
-                panels.debug("=== ALLIANCE SELECTION ===")
-                panels.addData("Selected", if (alliance == Alliance.BLUE) "BLUE" else "RED")
-                panels.debug("D-PAD: Up=Blue | Down=Red")
-                
-                // === CONFIGURABLE CONSTANTS ===
-                panels.debug("")
-                panels.debug("=== INTAKE CONSTANTS ===")
-                panels.addData("Collect Power", RobotConstants.INTAKE_COLLECT_POWER)
-                panels.addData("Eject Power", RobotConstants.INTAKE_EJECT_POWER)
-                panels.addData("Trigger Threshold", RobotConstants.INTAKE_TRIGGER_THRESHOLD)
-                
-                panels.debug("")
-                panels.debug("=== OUTTAKE CONSTANTS ===")
-                panels.addData("Ticks/Rev", RobotConstants.OUTTAKE_TICKS_PER_REVOLUTION)
-                panels.addData("RPM P Gain", RobotConstants.OUTTAKE_RPM_PROPORTIONAL_GAIN)
-                panels.addData("Default RPM", RobotConstants.OUTTAKE_DEFAULT_SPINUP_RPM)
-                panels.addData("Launch Duration", RobotConstants.OUTTAKE_LAUNCH_DURATION)
-                
-                panels.debug("")
-                panels.debug("=== SPINDEXER CONSTANTS ===")
-                panels.addData("Ticks/Pos", RobotConstants.SPINDEXER_TICKS_PER_POSITION)
-                panels.addData("Rotation Power", RobotConstants.SPINDEXER_ROTATION_POWER)
-                
-                panels.debug("")
-                panels.debug("=== TRANSFER CONSTANTS ===")
-                panels.addData("Default Pos", RobotConstants.TRANSFER_DEFAULT_POSITION)
-                panels.addData("Transfer Pos", RobotConstants.TRANSFER_TRANSFER_POSITION)
-                panels.addData("Position Inc", RobotConstants.TRANSFER_POSITION_INCREMENT)
-                
-                panels.debug("")
-                panels.debug("=== DRIVE CONSTANTS ===")
-                panels.addData("Deadzone", RobotConstants.DRIVE_DEADZONE)
-                
-                panels.update(telemetry)
+                telemetryA.addLine("=== ALLIANCE SELECTION ===")
+                telemetryA.addData("Selected", if (alliance == Alliance.BLUE) "BLUE" else "RED")
+                telemetryA.addLine("D-PAD: Up=Blue | Down=Red")
+                telemetryA.update()
             }),
             exec {
                 upFiber?.let { Fiber.CANCEL(it) }
@@ -120,142 +113,275 @@ val driverTeleOp = Mercurial.teleop {
             // Update limelight with current heading
             container.limelight.updateRobotOrientation(container.drive.getHeadingDegrees())
 
-            // Drive
-            val deadzone = RobotConstants.DRIVE_DEADZONE
-            val axial = if (abs(gamepad1.left_stick_y) > deadzone) -gamepad1.left_stick_y.toDouble() else 0.0
-            val lateral = if (abs(gamepad1.left_stick_x) > deadzone) gamepad1.left_stick_x.toDouble() else 0.0
-            val yaw = if (abs(gamepad1.right_stick_x) > deadzone) gamepad1.right_stick_x.toDouble() else 0.0
+            // Drive - Left stick for movement, right stick for rotation
+            val axial = -gamepad1.left_stick_y.toDouble()
+            val lateral = gamepad1.left_stick_x.toDouble()
+            val yaw = gamepad1.right_stick_x.toDouble()
             container.drive.drive(axial, lateral, yaw)
 
-            // Flywheel - Right trigger controls speed
-            val triggerValue = gamepad1.right_trigger.toDouble()
-            if (triggerValue > 0.05) {
-                container.outtake.setState(OuttakeSubsystem.State.ManualPower(triggerValue))
-            } else if (container.outtake.state is OuttakeSubsystem.State.ManualPower) {
-                container.outtake.setState(OuttakeSubsystem.State.Off)
+            // Manual flywheel with left trigger
+            val leftTrigger = gamepad1.left_trigger.toDouble()
+            if (leftTrigger > 0.05) {
+                container.outtake.setState(OuttakeSubsystem.State.ManualPower(leftTrigger))
             }
 
             // ═══════════════════════════════════════════════════════
-            // TELEMETRY - Panels Compatible
+            // CONTROLLER LED - Spindexer Mode Indicator
+            // ═══════════════════════════════════════════════════════
+            
+            when (container.spindexer.mode) {
+                SpindexerSubsystem.Mode.INTAKE -> {
+                    // Indigo (blue-purple) for intake
+                    gamepad1.setLedColor(0.29, 0.0, 0.51, Gamepad.LED_DURATION_CONTINUOUS)
+                }
+                SpindexerSubsystem.Mode.OUTTAKE -> {
+                    // Orange for outtake
+                    gamepad1.setLedColor(1.0, 0.5, 0.0, Gamepad.LED_DURATION_CONTINUOUS)
+                }
+            }
+
+            // ═══════════════════════════════════════════════════════
+            // VIBRATION - Shooting Zone Feedback
+            // ═══════════════════════════════════════════════════════
+            
+            val distance = container.getGoalDistance(alliance)
+            if (distance != null) {
+                when {
+                    // Optimal zone - strong rumble
+                    distance in ShootingConstants.SHOOTING_ZONE_OPTIMAL_MIN..ShootingConstants.SHOOTING_ZONE_OPTIMAL_MAX -> {
+                        gamepad1.rumble(0.8, 0.8, 100)
+                    }
+                    // Good zone - light rumble
+                    distance in ShootingConstants.SHOOTING_ZONE_MIN_METERS..ShootingConstants.SHOOTING_ZONE_MAX_METERS -> {
+                        gamepad1.rumble(0.3, 0.3, 100)
+                    }
+                }
+            }
+
+            // ═══════════════════════════════════════════════════════
+            // TELEMETRY
             // ═══════════════════════════════════════════════════════
 
             val loopMs = loopTimer.milliseconds()
             loopTimer.reset()
 
             // === GENERAL ===
-            panels.debug("=== GENERAL ===")
-            panels.addData("Alliance", if (alliance == Alliance.BLUE) "BLUE" else "RED")
-            panels.addData("Loop", "%.1fms (%.0fHz)".format(loopMs, 1000.0 / loopMs))
+            telemetryA.addLine("=== GENERAL ===")
+            telemetryA.addData("Alliance", if (alliance == Alliance.BLUE) "BLUE" else "RED")
+            telemetryA.addData("Loop", "%.1fms (%.0fHz)".format(loopMs, 1000.0 / loopMs))
 
             // === DRIVE ===
-            panels.debug("")
-            panels.debug("=== DRIVE ===")
-            panels.addData("Heading", "%.1f deg".format(container.drive.getHeadingDegrees()))
-            panels.addData("Input", "A:%.2f L:%.2f Y:%.2f".format(axial, lateral, yaw))
+            telemetryA.addLine("")
+            telemetryA.addLine("=== DRIVE ===")
+            telemetryA.addData("Heading", "%.1f deg".format(container.drive.getHeadingDegrees()))
 
-            // === LIMELIGHT ===
-            panels.debug("")
-            panels.debug("=== LIMELIGHT ===")
-            val pose = container.getRobotPose()
-            val distance = container.getGoalDistance(alliance)
-            panels.addData("Has Target", container.limelight.hasTarget())
-            panels.addData("TX", "%.2f".format(container.limelight.getTx()))
-            panels.addData("TY", "%.2f".format(container.limelight.getTy()))
-            if (pose != null) {
-                panels.addData("Pose X", "%.2f m".format(pose.position.x))
-                panels.addData("Pose Y", "%.2f m".format(pose.position.y))
-            } else {
-                panels.addData("Pose", "No MegaTag")
-            }
+            // === LIMELIGHT & SHOOTING ===
+            telemetryA.addLine("")
+            telemetryA.addLine("=== SHOOTING ===")
+            val shotParams = distance?.let { ShootingCalculator.calculateShotParameters(it) }
+            
+            telemetryA.addData("Has Target", container.limelight.hasTarget())
             if (distance != null) {
-                panels.addData("Goal Dist", "%.2f m".format(distance))
-                val targetRPM = ShootingCalculator.calculateShotParameters(distance)?.targetRPM ?: 0.0
-                panels.addData("Calc RPM", "%d".format(targetRPM.toInt()))
+                telemetryA.addData("Distance", "%.2f m".format(distance))
+                
+                // Show shooting zone status
+                val zoneStatus = when {
+                    distance in ShootingConstants.SHOOTING_ZONE_OPTIMAL_MIN..ShootingConstants.SHOOTING_ZONE_OPTIMAL_MAX -> "OPTIMAL"
+                    distance in ShootingConstants.SHOOTING_ZONE_MIN_METERS..ShootingConstants.SHOOTING_ZONE_MAX_METERS -> "GOOD"
+                    distance < ShootingConstants.SHOOTING_ZONE_MIN_METERS -> "TOO CLOSE"
+                    else -> "TOO FAR"
+                }
+                telemetryA.addData("Zone", zoneStatus)
+                
+                if (shotParams != null) {
+                    telemetryA.addData("Calc RPM", "%d".format(shotParams.targetRPM.toInt()))
+                } else {
+                    telemetryA.addData("Calc RPM", "OUT OF RANGE")
+                }
+            } else {
+                telemetryA.addData("Distance", "No Target")
             }
-
-            // === INTAKE ===
-            panels.debug("")
-            panels.debug("=== INTAKE ===")
-            panels.addData("State", container.intake.state)
 
             // === OUTTAKE / FLYWHEEL ===
-            panels.debug("")
-            panels.debug("=== OUTTAKE ===")
-            panels.addData("State", container.outtake.state)
-            panels.addData("Current RPM", "%d".format(container.outtake.getCurrentRPM().toInt()))
-            panels.addData("Trigger", "%.2f".format(triggerValue))
-            when (val s = container.outtake.state) {
-                is OuttakeSubsystem.State.SpinningUp -> panels.addData("Target RPM", "%d".format(s.targetRPM.toInt()))
-                is OuttakeSubsystem.State.Ready -> panels.addData("Target RPM", "%d".format(s.targetRPM.toInt()))
-                is OuttakeSubsystem.State.ManualPower -> panels.addData("Power", "%.2f".format(s.power))
-                else -> {}
+            telemetryA.addLine("")
+            telemetryA.addLine("=== FLYWHEEL ===")
+            telemetryA.addData("State", container.outtake.state::class.simpleName ?: "Unknown")
+            telemetryA.addData("Current RPM", "%d".format(container.outtake.getCurrentRPM().toInt()))
+            
+            val lockedRPM = container.outtake.lockedRPM
+            val lockedDist = container.outtake.lockedDistance
+            if (lockedRPM != null) {
+                telemetryA.addData("Locked RPM", "%d".format(lockedRPM.toInt()))
+                if (lockedDist != null) {
+                    telemetryA.addData("Locked Dist", "%.2f m".format(lockedDist))
+                }
+                telemetryA.addData("Ready", if (container.outtake.isReady()) "YES" else "Spinning...")
+            } else {
+                telemetryA.addData("Locked", "None (Press LB)")
             }
 
             // === SPINDEXER ===
-            panels.debug("")
-            panels.debug("=== SPINDEXER ===")
-            panels.addData("State", container.spindexer.state)
+            telemetryA.addLine("")
+            telemetryA.addLine("=== SPINDEXER ===")
+            telemetryA.addData("Mode", container.spindexer.mode.name)
+            telemetryA.addData("State", container.spindexer.state::class.simpleName ?: "Unknown")
+            telemetryA.addData("Position", container.spindexer.currentPositionIndex)
+            telemetryA.addData("Angle", "%.1f deg".format(container.spindexer.getCurrentAngle()))
+            telemetryA.addData("Error", "%.1f deg".format(container.spindexer.currentError))
+            telemetryA.addData("Encoder Hz", "%.0f".format(container.spindexer.encoderPollingRateHz))
+            telemetryA.addData("Type", when {
+                container.spindexer.isAtIntakePosition() -> "INTAKE"
+                container.spindexer.isAtOuttakePosition() -> "OUTTAKE"
+                else -> "Moving..."
+            })
 
             // === TRANSFER ===
-            panels.debug("")
-            panels.debug("=== TRANSFER ===")
-            panels.addData("State", container.transfer.state)
-            panels.addData("Target Pos", "%.4f".format(container.transfer.getTargetPosition()))
-            panels.debug("B=Transfer | X=Reset | DPad=Adjust")
+            telemetryA.addLine("")
+            telemetryA.addLine("=== TRANSFER ===")
+            telemetryA.addData("Position", "%.3f".format(container.transfer.getTargetPosition()))
 
-            // Send to both Panels and Driver Station
-            panels.update(telemetry)
+            // === INTAKE ===
+            telemetryA.addLine("")
+            telemetryA.addLine("=== INTAKE ===")
+            telemetryA.addData("State", container.intake.state::class.simpleName ?: "Unknown")
+
+            // === CONTROLS REMINDER ===
+            telemetryA.addLine("")
+            telemetryA.addLine("=== CONTROLS ===")
+            telemetryA.addLine("RB=Intake+Spin | RT=Tubes | LB=Lock | LT=Manual")
+            telemetryA.addLine("DPad=Transfer/Spin | Y=Localize | X=Kick | []]=Mode")
+
+            telemetryA.update()
         })
     )
 
     // ═══════════════════════════════════════════════════════
-    // BUTTON BINDINGS
+    // RIGHT SIDE - INTAKE CONTROLS
     // ═══════════════════════════════════════════════════════
 
-    // Intake - Left Trigger
+    // Right Bumper - Intake with auto spindexer advance
     bindSpawn(
-        risingEdge { gamepad1.left_trigger > RobotConstants.INTAKE_TRIGGER_THRESHOLD },
-        container.intake.collect()
+        risingEdge { gamepad1.right_bumper },
+        sequence(
+            container.intake.collect(),
+        )
     )
     bindSpawn(
-        risingEdge { gamepad1.left_trigger < RobotConstants.INTAKE_TRIGGER_THRESHOLD },
+        risingEdge { !gamepad1.right_bumper },
         container.intake.stop()
     )
 
-    // Fire - A Button
-    bindSpawn(risingEdge { gamepad1.a }, container.outtake.launch())
+//    bindSpawn(
+//        risingEdge { gamepad1.right_trigger > 0.1 },
+//        container.intake.collect()
+//    )
+//    bindSpawn(
+//        risingEdge { gamepad1.right_trigger < 0.1 },
+//        container.intake.stop()
+//    )
 
-    // Spindexer - Bumpers (hold to continuously rotate, stops when released)
-    bindWhileTrue({ gamepad1.right_bumper }, container.spindexer.continuousRight())
-    bindWhileTrue({ gamepad1.left_bumper }, container.spindexer.continuousLeft())
-    
-    // Stop spindexer when bumpers released
-    bindSpawn(risingEdge { !gamepad1.right_bumper }, container.spindexer.stop())
-    bindSpawn(risingEdge { !gamepad1.left_bumper }, container.spindexer.stop())
+    // ═══════════════════════════════════════════════════════
+    // LEFT SIDE - OUTTAKE CONTROLS
+    // ═══════════════════════════════════════════════════════
 
-    // Transfer Controls
-    // B - Go to transfer position
-    bindSpawn(risingEdge { gamepad1.b }, container.transfer.transfer())
-    
-    // X - Reset to default position
-    bindSpawn(risingEdge { gamepad1.x }, container.transfer.reset())
-    
-    // D-Pad Up/Down - Fine tune transfer position (for testing)// Intake - Left Trigger
-    //    bindSpawn(
-    //        risingEdge { gamepad1.left_trigger > RobotConstants.INTAKE_TRIGGER_THRESHOLD },
-    //        container.intake.collect()
-    //    )
-    //    bindSpawn(
-    //        risingEdge { gamepad1.left_trigger < RobotConstants.INTAKE_TRIGGER_THRESHOLD },
-    //        container.intake.stop()
-    //    )
+    // Left Bumper - Lock RPM based on Limelight distance
     bindSpawn(
-        risingEdge { gamepad1.dpad_up }, 
-        container.transfer.adjustPosition(RobotConstants.TRANSFER_POSITION_INCREMENT)
+        risingEdge { gamepad1.left_bumper },
+        exec {
+            if (container.outtake.state != OuttakeSubsystem.State.Off) {
+                container.outtake.stop()
+            } else {
+                val dist = container.getGoalDistance(alliance)
+                if (dist != null) {
+                    container.outtake.lockToDistanceDirect(dist)
+                } else {
+                    container.outtake.spinToRPMDirect(ShootingConstants.DEFAULT_SHOOTING_RPM)
+                }
+            }
+        }
+    )
+    
+    // Left Trigger release - stop flywheel when not using manual control
+    bindSpawn(
+        risingEdge { gamepad1.left_trigger < 0.05 },
+        exec {
+            if (container.outtake.lockedRPM == null) {
+                container.outtake.setState(OuttakeSubsystem.State.Off)
+            }
+        }
+    )
+
+    // ═══════════════════════════════════════════════════════
+    // D-PAD CONTROLS
+    // ═══════════════════════════════════════════════════════
+
+    // D-Pad Up - Manual transfer up
+    bindSpawn(
+        risingEdge { gamepad1.dpad_up },
+        container.transfer.transfer()
+    )
+
+    // D-Pad Down - Manual transfer down
+    bindSpawn(
+        risingEdge { gamepad1.dpad_down },
+        container.transfer.reset()
+    )
+
+    // D-Pad Right - Spindexer rotate right
+    bindSpawn(
+        risingEdge { gamepad1.dpad_right },
+        container.spindexer.rotateRight()
+    )
+
+    // D-Pad Left - Spindexer rotate left
+    bindSpawn(
+        risingEdge { gamepad1.dpad_left },
+        container.spindexer.rotateLeft()
+    )
+
+    // ═══════════════════════════════════════════════════════
+    // FACE BUTTON CONTROLS
+    // ═══════════════════════════════════════════════════════
+
+    // Triangle (Y) - Localize from AprilTag
+    bindSpawn(
+        risingEdge { gamepad1.triangle },
+        exec {
+            // Force a pose update from Limelight
+            val pose = container.limelight.getBotPoseMT2()
+            if (pose != null) {
+                // TODO: Update Pedro Pathing localization with this pose
+                // For now, just confirm we got a pose
+                gamepad1.rumble(0.5, 0.5, 200) // Feedback that localization worked
+            } else {
+                gamepad1.rumble(0.0, 1.0, 500) // Right-side rumble = no target
+            }
+        }
+    )
+
+    // X (A on Xbox) - Kick out / Eject from spindexer
+    bindSpawn(
+        risingEdge { gamepad1.cross },
+        container.intake.eject()
     )
     bindSpawn(
-        risingEdge { gamepad1.dpad_down }, 
-        container.transfer.adjustPosition(-RobotConstants.TRANSFER_POSITION_INCREMENT)
+        risingEdge { !gamepad1.cross },
+        container.intake.stop()
+    )
+
+    // Square (X on Xbox) - Toggle spindexer mode (Intake <-> Outtake)
+    bindSpawn(
+        risingEdge { gamepad1.square },
+        container.spindexer.toggleMode()
+    )
+
+    // B Button - Stop flywheel / Reset transfer (safety)
+    bindSpawn(
+        risingEdge { gamepad1.circle },
+        sequence(
+            container.outtake.stop(),
+            container.transfer.reset()
+        )
     )
 
     dropToScheduler()

@@ -49,7 +49,6 @@ class TransferSubsystem(hardwareMap: HardwareMap) : Subsystem() {
     fun reset(): Closure = exec { state = State.Default }
     fun setPosition(position: Double): Closure = exec { state = State.AtPosition(position.coerceIn(0.0, 1.0)) }
 
-    // Direct state setter for continuous control (e.g., joystick)
     fun setPositionDirect(position: Double) {
         state = State.AtPosition(position.coerceIn(0.0, 1.0))
     }

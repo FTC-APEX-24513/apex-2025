@@ -1,12 +1,13 @@
 package org.firstinspires.ftc.teamcode.constants
 
-import com.bylazar.configurables.annotations.Configurable
+import com.acmerobotics.dashboard.config.Config
+
 
 /**
  * Physical constants and tunable parameters for the intelligent shooting system.
  * All values should be measured and calibrated during testing.
  */
-@Configurable
+@Config
 object ShootingConstants {
     // ========== Robot Physical Parameters ==========
     @JvmField var LAUNCH_HEIGHT_METERS = 0.2255         // 225.5mm from ground to flywheel
@@ -103,6 +104,13 @@ object ShootingConstants {
     // ========== AprilTag IDs (from game manual) ==========
     @JvmField var BLUE_GOAL_APRILTAG_ID = 20
     @JvmField var RED_GOAL_APRILTAG_ID = 24
+
+    // ========== Shooting Zones ==========
+    // Distances (in meters) where shooting is optimal - triggers controller vibration
+    @JvmField var SHOOTING_ZONE_MIN_METERS = 1.0        // Minimum distance for good shots
+    @JvmField var SHOOTING_ZONE_MAX_METERS = 2.5        // Maximum distance for good shots
+    @JvmField var SHOOTING_ZONE_OPTIMAL_MIN = 1.5       // Optimal zone start
+    @JvmField var SHOOTING_ZONE_OPTIMAL_MAX = 2.0       // Optimal zone end
 }
 
 /**

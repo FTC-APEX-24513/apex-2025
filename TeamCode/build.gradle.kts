@@ -143,6 +143,6 @@ dependencies {
     androidTestImplementation(libs.junit.ext)
     testImplementation(libs.junit)
 
-    // Panels
-    implementation(libs.fullpanels)
+    // FTC Dashboard
+    implementation(libs.ftc.dashboard)
 }

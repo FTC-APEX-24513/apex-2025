@@ -1,19 +1,11 @@
 package org.firstinspires.ftc.teamcode.constants
 
-import com.bylazar.configurables.annotations.Configurable
+import com.acmerobotics.dashboard.config.Config
 
-@Configurable
+
+@Config
 class RobotConstants {
     companion object {
-        // ═══════════════════════════════════════════════════════
-        // SPINDEXER CONFIGURATION
-        // ═══════════════════════════════════════════════════════
-
-        @JvmField
-        var SPINDEXER_TICKS_PER_POSITION = 280
-
-        @JvmField
-        var SPINDEXER_ROTATION_POWER = 0.9
 
         // ═══════════════════════════════════════════════════════
         // SHOOTING CONFIGURATION
@@ -34,13 +26,6 @@ class RobotConstants {
 
         @JvmField
         var ALIGNMENT_KD = 0.01
-
-        // ═══════════════════════════════════════════════════════
-        // DRIVE CONFIGURATION
-        // ═══════════════════════════════════════════════════════
-
-        @JvmField
-        var DRIVE_DEADZONE = 0.05
 
         // ═══════════════════════════════════════════════════════
         // INTAKE CONFIGURATION
@@ -80,8 +65,5 @@ class RobotConstants {
 
         @JvmField
         var TRANSFER_TRANSFER_POSITION = -0.8
-
-        @JvmField
-        var TRANSFER_POSITION_INCREMENT = 0.05
     }
 }
