@@ -11,12 +11,13 @@ import dev.frozenmilk.dairy.mercurial.continuations.Continuations.wait
 import me.tatarka.inject.annotations.Inject
 import org.firstinspires.ftc.teamcode.di.HardwareScoped
 import org.firstinspires.ftc.teamcode.physics.ShootingCalculator
+import org.firstinspires.ftc.teamcode.util.VoltageCompensation
 import kotlin.math.abs
 
 @Config
 @Inject
 @HardwareScoped
-class OuttakeSubsystem(hardwareMap: HardwareMap) : Subsystem() {
+class OuttakeSubsystem(hardwareMap: HardwareMap, private val voltageCompensation: VoltageCompensation) : Subsystem() {
     private val motor = hardwareMap.get(DcMotorEx::class.java, "flywheel").apply {
         zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
     }
@@ -87,27 +88,44 @@ class OuttakeSubsystem(hardwareMap: HardwareMap) : Subsystem() {
     var lockedDistance: Double? = null
         private set
 
+    private var lastCompensatedPower: Double = 0.0
+
     fun setState(newState: State) {
         state = newState
     }
 
+    fun getCurrentMotorPower(): Double = lastCompensatedPower
+
     override fun periodic(): Closure = exec {
         when (val s = state) {
-            is State.Off -> motor.power = 0.0
+            is State.Off -> {
+                motor.power = 0.0
+                lastCompensatedPower = 0.0
+            }
             is State.SpinningUp -> {
-                motor.power = calculatePowerForRPM(s.targetRPM, getCurrentRPM())
+                val rawPower = calculatePowerForRPM(s.targetRPM, getCurrentRPM())
+                val compensatedPower = voltageCompensation.compensate(rawPower)
+                motor.power = compensatedPower
+                lastCompensatedPower = compensatedPower
                 if (isAtTargetSpeed(s.targetRPM)) {
                     state = State.Ready(s.targetRPM)
                 }
             }
             is State.Ready -> {
-                motor.power = calculatePowerForRPM(s.targetRPM, getCurrentRPM())
+                val rawPower = calculatePowerForRPM(s.targetRPM, getCurrentRPM())
+                val compensatedPower = voltageCompensation.compensate(rawPower)
+                motor.power = compensatedPower
+                lastCompensatedPower = compensatedPower
             }
             is State.Launching -> {
-                motor.power = 1.0
+                val compensatedPower = voltageCompensation.compensate(1.0)
+                motor.power = compensatedPower
+                lastCompensatedPower = compensatedPower
             }
             is State.ManualPower -> {
-                motor.power = s.power
+                val compensatedPower = voltageCompensation.compensate(s.power)
+                motor.power = compensatedPower
+                lastCompensatedPower = compensatedPower
             }
         }
     }

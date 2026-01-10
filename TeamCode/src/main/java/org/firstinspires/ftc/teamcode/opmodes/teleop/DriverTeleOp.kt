@@ -164,6 +164,14 @@ val driverTeleOp = Mercurial.teleop {
             telemetryA.addData("Alliance", if (alliance == Alliance.BLUE) "BLUE" else "RED")
             telemetryA.addData("Loop", "%.1fms (%.0fHz)".format(loopMs, 1000.0 / loopMs))
 
+            // === VOLTAGE ===
+            telemetryA.addLine("")
+            telemetryA.addLine("=== VOLTAGE ===")
+            val batteryVoltage = container.voltageCompensation.getVoltage()
+            val compensationMultiplier = container.voltageCompensation.getCompensationMultiplier()
+            telemetryA.addData("Battery", "%.2fV".format(batteryVoltage))
+            telemetryA.addData("Compensation", "%.2fx".format(compensationMultiplier))
+
             // === DRIVE ===
             telemetryA.addLine("")
             telemetryA.addLine("=== DRIVE ===")
@@ -201,6 +209,12 @@ val driverTeleOp = Mercurial.teleop {
             telemetryA.addLine("=== FLYWHEEL ===")
             telemetryA.addData("State", container.outtake.state::class.simpleName ?: "Unknown")
             telemetryA.addData("Current RPM", "%d".format(container.outtake.getCurrentRPM().toInt()))
+
+            // Motor power and voltage telemetry
+            val motorPower = container.outtake.getCurrentMotorPower()
+            val effectiveVoltage = motorPower * batteryVoltage
+            telemetryA.addData("Motor Power", "%.2f (%.1f%%)".format(motorPower, motorPower * 100.0))
+            telemetryA.addData("Effective V", "%.2fV".format(effectiveVoltage))
 
             val lockedRPM = container.outtake.lockedRPM
             val lockedDist = container.outtake.lockedDistance

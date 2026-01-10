@@ -7,11 +7,12 @@ import dev.frozenmilk.dairy.mercurial.continuations.Closure
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
 import me.tatarka.inject.annotations.Inject
 import org.firstinspires.ftc.teamcode.di.HardwareScoped
+import org.firstinspires.ftc.teamcode.util.VoltageCompensation
 
 @Config
 @Inject
 @HardwareScoped
-class IntakeSubsystem(hardwareMap: HardwareMap) : Subsystem() {
+class IntakeSubsystem(hardwareMap: HardwareMap, private val voltageCompensation: VoltageCompensation) : Subsystem() {
     private val motor = hardwareMap.dcMotor.get("intake").apply {
         zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
     }
@@ -32,11 +33,12 @@ class IntakeSubsystem(hardwareMap: HardwareMap) : Subsystem() {
         private set
 
     override fun periodic(): Closure = exec {
-        motor.power = when (state) {
+        val rawPower = when (state) {
             is State.Idle -> 0.0
             is State.Collecting -> COLLECT_POWER
             is State.Ejecting -> EJECT_POWER
         }
+        motor.power = voltageCompensation.compensate(rawPower)
     }
 
     fun collect(): Closure = exec { state = State.Collecting }

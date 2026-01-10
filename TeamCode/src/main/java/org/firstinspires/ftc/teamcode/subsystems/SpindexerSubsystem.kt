@@ -9,13 +9,14 @@ import dev.frozenmilk.dairy.mercurial.continuations.Closure
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
 import me.tatarka.inject.annotations.Inject
 import org.firstinspires.ftc.teamcode.di.HardwareScoped
+import org.firstinspires.ftc.teamcode.util.VoltageCompensation
 import kotlin.math.abs
 import kotlin.math.sign
 
 @Inject
 @HardwareScoped
 @Config
-class SpindexerSubsystem(hardwareMap: HardwareMap) : Subsystem() {
+class SpindexerSubsystem(hardwareMap: HardwareMap, private val voltageCompensation: VoltageCompensation) : Subsystem() {
 
     private val servo: CRServo = hardwareMap.get(CRServo::class.java, "spindexer")
     private val encoder: AnalogInput = hardwareMap.get(AnalogInput::class.java, "spindexerEncoder")
@@ -97,13 +98,13 @@ class SpindexerSubsystem(hardwareMap: HardwareMap) : Subsystem() {
 
                 val output = (error * kP) + (integralSum * kI) + (derivative * kD) * ((currentAngle - s.targetDegrees) / s.targetDegrees)
 
-                servo.power = output.coerceIn(-1.0, 1.0)
+                servo.power = voltageCompensation.compensate(output.coerceIn(-1.0, 1.0))
 
                 lastError = error
             }
 
             is State.ManualControl -> {
-                servo.power = s.power
+                servo.power = voltageCompensation.compensate(s.power)
             }
 
             is State.SpinningTimed -> {
@@ -112,7 +113,7 @@ class SpindexerSubsystem(hardwareMap: HardwareMap) : Subsystem() {
                     servo.power = 0.0
                     state = State.Idle
                 } else {
-                    servo.power = s.power
+                    servo.power = voltageCompensation.compensate(s.power)
                 }
             }
         }
