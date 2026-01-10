@@ -101,4 +101,6 @@ val limelightTestTeleOp = Mercurial.teleop {
         }
     )
     */
+
+    dropToScheduler()
 }

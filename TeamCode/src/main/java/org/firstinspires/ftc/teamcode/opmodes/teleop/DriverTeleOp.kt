@@ -104,6 +104,7 @@ val driverTeleOp = Mercurial.teleop {
 
     schedule(
         loop({ inLoop }, exec {
+            container.follower.update()
             container.limelight.updateRobotOrientation(Math.toDegrees(container.follower.pose.heading))
 
             // Drive - Left stick for movement, right stick for rotation

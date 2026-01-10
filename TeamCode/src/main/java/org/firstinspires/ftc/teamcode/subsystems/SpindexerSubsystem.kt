@@ -43,7 +43,7 @@ class SpindexerSubsystem(hardwareMap: HardwareMap) : Subsystem() {
 
         // Time-based spinning constants (from test teleop)
         @JvmField
-        var FULL_ROTATION_TIME_MS = 1200.0 // Time for full 360° rotation
+        var FULL_ROTATION_TIME_MS = 800.0 // Time for full 360° rotation
 
         @JvmField
         var SERVO_POWER = 1.0 // Power for time-based spinning
@@ -95,7 +95,7 @@ class SpindexerSubsystem(hardwareMap: HardwareMap) : Subsystem() {
                 }
                 integralSum = (integralSum + (error * safeDt)).coerceIn(-MAX_INTEGRAL_SUM, MAX_INTEGRAL_SUM)
 
-                val output = (error * kP) + (integralSum * kI) + (derivative * kD)
+                val output = (error * kP) + (integralSum * kI) + (derivative * kD) * ((currentAngle - s.targetDegrees) / s.targetDegrees)
 
                 servo.power = output.coerceIn(-1.0, 1.0)
 
