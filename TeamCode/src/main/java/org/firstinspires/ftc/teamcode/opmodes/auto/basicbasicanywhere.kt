@@ -29,7 +29,7 @@ class StrafeRightTest : LinearOpMode() {
         rightFront.power = -0.5
         rightRear.power = 0.5
 
-        sleep(200) // 0.2 seconds
+        sleep(750) // 0.2 seconds
 
         // Stop
         leftFront.power = 0.0

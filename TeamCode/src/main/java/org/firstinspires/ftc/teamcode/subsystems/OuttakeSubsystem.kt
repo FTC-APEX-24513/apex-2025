@@ -52,12 +52,12 @@ class OuttakeSubsystem(hardwareMap: HardwareMap) : Subsystem() {
 
         // Control
         @JvmField var FLYWHEEL_TO_BALL_EFFICIENCY = 0.87
-        @JvmField var MAX_FLYWHEEL_RPM = 5000.0
+        @JvmField var MAX_FLYWHEEL_RPM = 4000.0
         @JvmField var MIN_STABLE_RPM = 500.0
         @JvmField var TICKS_PER_REVOLUTION = 28.0
-        @JvmField var RPM_PROPORTIONAL_GAIN = 0.000125
+        @JvmField var RPM_PROPORTIONAL_GAIN = 0.00014
         @JvmField var DEFAULT_SHOOTING_RPM = 3500.0
-        @JvmField var LAUNCH_DURATION = 0.3
+        @JvmField var LAUNCH_DURATION = 3.0
 
         @JvmField var MOTOR_STALL_TORQUE_NM = 0.170
         @JvmField var MOTOR_GEAR_RATIO = 1.0

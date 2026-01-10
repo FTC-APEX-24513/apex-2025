@@ -1,11 +1,14 @@
 package org.firstinspires.ftc.teamcode.opmodes.auto
 
+import com.acmerobotics.dashboard.FtcDashboard
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry
 import com.pedropathing.geometry.BezierLine
 import com.pedropathing.geometry.Pose
-import com.pedropathing.paths.PathChain
+import com.pedropathing.paths.Path
 import com.pedropathing.util.Timer
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.loop
+import dev.frozenmilk.dairy.mercurial.continuations.Continuations.parallel
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.sequence
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.wait
 import dev.frozenmilk.dairy.mercurial.ftc.Mercurial
@@ -14,48 +17,58 @@ import org.firstinspires.ftc.teamcode.di.create
 import org.firstinspires.ftc.teamcode.subsystems.OuttakeSubsystem
 
 @Suppress("UNUSED")
-val redTop0 = Mercurial.autonomous {
-
-    lateinit var container: HardwareContainer
-    val pathTimer = Timer()
-    var pathState = 0
-
-    val startPoseRedTop = Pose(88.0, 88.0, Math.toRadians(180.0))
-    val redScore = Pose(96.0, 48.0, Math.toRadians(0.0))
-
-    lateinit var redStartToScore: PathChain
-
-    fun buildPaths() {
-        redStartToScore = container.follower.pathBuilder()
-            .addPath(BezierLine(startPoseRedTop, redScore))
-            .setLinearHeadingInterpolation(startPoseRedTop.heading, redScore.heading)
-            .build()
+val aRedTop0 = Mercurial.autonomous {
+    val telemetryA = MultipleTelemetry(telemetry, FtcDashboard.getInstance().telemetry)
+    val container = HardwareContainer::class.create(hardwareMap, scheduler).also {
+        it.startPeriodic()
     }
 
-    sequence(
-        exec {
-            container = HardwareContainer::class.create(hardwareMap, scheduler).also {
-                it.startPeriodic()
-            }
+    var pathState = 0
 
-            buildPaths()
-            container.follower.setStartingPose(startPoseRedTop)
-        },
-        wait { inLoop },
-        exec { pathState = 0 },
-        loop(
-            exec {
-                container.follower.update()
-                when (pathState) {
-                    0 -> {
-                        container.follower.followPath(redStartToScore)
-                        container.outtake.setState(OuttakeSubsystem.State.ManualPower(1.0))
-                        pathState = 1
-                    }
-                    1 -> if (!container.follower.isBusy) pathState = 2
-                    2 -> { /* Finished */ }
+    val startPoseBlueTop = Pose(20.0, 122.0, Math.toRadians(145.0))
+    val blueScore = Pose(72.0, 72.0, Math.toRadians(145.0))
+    var scorePreload = Path(BezierLine(startPoseBlueTop, blueScore))
+    scorePreload.setLinearHeadingInterpolation(
+        startPoseBlueTop.heading, blueScore.heading
+    )
+    container.follower.setStartingPose(startPoseBlueTop)
+
+    waitForStart()
+    container.follower.startTeleopDrive(true)
+
+    schedule(
+        parallel(
+            loop({ true }, exec { container.follower.update() }),
+            sequence(
+                exec {
+                    container.follower.setTeleOpDrive(-1.0, 0.0, 0.0)
+                    container.outtake.spinToRPMDirect(4100.0)
+                },
+                wait(.95),
+                exec {
+                    container.follower.setTeleOpDrive(0.0, 0.0, 0.0)
+                },
+                wait(3.0),
+                container.transfer.transfer(),
+                wait(2.0),
+                container.transfer.reset(),
+                wait(.75),
+                container.spindexer.rotateLeft(),
+                wait(.9),
+                container.spindexer.rotateLeft(),
+                wait(.9),
+                container.transfer.transfer(),
+                wait(2.0),
+                container.transfer.reset(),
+                container.outtake.stop(),
+                exec {
+                    container.follower.setTeleOpDrive(0.0, -0.5, 0.0)
+                },
+                wait(0.55),
+                exec {
+                    container.follower.setTeleOpDrive(0.0, 0.0, 0.0)
                 }
-            }
+            )
         )
     )
 
