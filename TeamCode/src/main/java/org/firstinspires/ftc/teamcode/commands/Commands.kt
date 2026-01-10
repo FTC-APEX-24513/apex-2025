@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.commands
 
+import com.pedropathing.geometry.Pose
+import com.pedropathing.util.Timer
 import dev.frozenmilk.dairy.mercurial.continuations.Closure
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.loop
@@ -9,10 +11,9 @@ import dev.frozenmilk.dairy.mercurial.continuations.Continuations.wait
 import dev.frozenmilk.dairy.mercurial.continuations.Fiber
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D
 import org.firstinspires.ftc.teamcode.constants.Alliance
-import org.firstinspires.ftc.teamcode.constants.RobotConstants
-import org.firstinspires.ftc.teamcode.constants.ShootingConstants
 import org.firstinspires.ftc.teamcode.di.HardwareContainer
 import org.firstinspires.ftc.teamcode.physics.ShootingCalculator
+import org.firstinspires.ftc.teamcode.subsystems.OuttakeSubsystem
 import kotlin.math.abs
 import kotlin.math.sqrt
 
@@ -41,7 +42,7 @@ fun HardwareContainer.getRobotPose(): Pose3D? {
 // ═══════════════════════════════════════════════════════
 
 fun HardwareContainer.isAligned() =
-    !limelight.hasTarget() || abs(limelight.getTx()) < RobotConstants.ALIGNMENT_TOLERANCE
+    !limelight.hasTarget() || abs(limelight.getTx()) < 0.05
 
 fun HardwareContainer.autoAlign(): Closure = scope {
     var lastError by variable { 0.0 }
@@ -50,11 +51,11 @@ fun HardwareContainer.autoAlign(): Closure = scope {
         if (!limelight.hasTarget()) return@exec
 
         val tx = limelight.getTx()
-        val turn = -(RobotConstants.ALIGNMENT_KP * tx + RobotConstants.ALIGNMENT_KD * (tx - lastError))
+        val turn = -(0.05 * tx + 0.05 * (tx - lastError))
         lastError = tx
 
-        drive.drive(0.0, 0.0, turn)
-    }), exec { drive.stop() })
+        follower.pose = Pose(follower.pose.x, follower.pose.y, turn)
+    }), exec { follower.setTeleOpDrive(0.0, 0.0, 0.0, false) })
 }
 
 // ═══════════════════════════════════════════════════════
@@ -80,7 +81,7 @@ fun HardwareContainer.shoot(alliance: Alliance): Closure = scope {
                 val dx = currentPose.position.x - lastPose!!.position.x
                 val dy = currentPose.position.y - lastPose!!.position.y
                 val distance = sqrt(dx * dx + dy * dy)
-                distance > RobotConstants.SHOT_RECALC_THRESHOLD
+                distance > 0.05
             } else {
                 true  // Always align if no previous pose
             }
@@ -98,11 +99,11 @@ fun HardwareContainer.shoot(alliance: Alliance): Closure = scope {
 
             dist = getGoalDistance(alliance) ?: run {
                 // No AprilTag visible - use default RPM
-                rpm = ShootingConstants.DEFAULT_SHOOTING_RPM
+                rpm = OuttakeSubsystem.DEFAULT_SHOOTING_RPM
                 return@exec
             }
 
-            rpm = ShootingCalculator.calculateShotParameters(dist)?.targetRPM ?: ShootingConstants.DEFAULT_SHOOTING_RPM
+            rpm = ShootingCalculator.calculateShotParameters(dist)?.targetRPM ?: OuttakeSubsystem.DEFAULT_SHOOTING_RPM
         },
 
         // Spin up and fire
@@ -136,11 +137,11 @@ fun HardwareContainer.continuousShoot(alliance: Alliance): Closure = scope {
         exec {
             dist = getGoalDistance(alliance) ?: run {
                 // No AprilTag - use default RPM
-                rpm = ShootingConstants.DEFAULT_SHOOTING_RPM
+                rpm = OuttakeSubsystem.DEFAULT_SHOOTING_RPM
                 return@exec
             }
 
-            rpm = ShootingCalculator.calculateShotParameters(dist)?.targetRPM ?: ShootingConstants.DEFAULT_SHOOTING_RPM
+            rpm = ShootingCalculator.calculateShotParameters(dist)?.targetRPM ?: OuttakeSubsystem.DEFAULT_SHOOTING_RPM
         },
 
         // Continuous firing loop
@@ -160,4 +161,41 @@ fun HardwareContainer.continuousShoot(alliance: Alliance): Closure = scope {
         exec {
             outtake.stop()
         })
+}
+
+// ═══════════════════════════════════════════════════════
+// AUTONOMOUS HELPERS
+// ═══════════════════════════════════════════════════════
+
+/**
+ * Autonomous shooting sequence state machine.
+ * Handles the full 3-sample shooting sequence with timing.
+ *
+ * @param timer The action timer for timing control
+ * @param actionState A mutable reference to the current action state (0-8)
+ * @return true if shooting sequence is complete, false otherwise
+ */
+fun HardwareContainer.autoShootingSequence(timer: Timer, actionState: IntArray): Boolean {
+    when (actionState[0]) {
+        0 -> if (timer.elapsedTimeSeconds > 0.5) { timer.resetTimer(); actionState[0] = 1 }
+        1 -> if (timer.elapsedTimeSeconds > 0.35) { transfer.transfer(); timer.resetTimer(); actionState[0] = 2 }
+        2 -> if (timer.elapsedTimeSeconds > 0.6) { outtake.launch(); timer.resetTimer(); actionState[0] = 3 }
+        3 -> if (timer.elapsedTimeSeconds > 0.3) { spindexer.rotateRight(); timer.resetTimer(); actionState[0] = 4 }
+        4 -> if (timer.elapsedTimeSeconds > 0.35) { transfer.transfer(); timer.resetTimer(); actionState[0] = 5 }
+        5 -> if (timer.elapsedTimeSeconds > 0.6) { outtake.launch(); timer.resetTimer(); actionState[0] = 6 }
+        6 -> if (timer.elapsedTimeSeconds > 0.3) { spindexer.rotateRight(); timer.resetTimer(); actionState[0] = 7 }
+        7 -> if (timer.elapsedTimeSeconds > 0.35) { transfer.transfer(); timer.resetTimer(); actionState[0] = 8 }
+        8 -> if (timer.elapsedTimeSeconds > 0.6) { outtake.launch(); timer.resetTimer(); actionState[0] = 9 }
+        9 -> return true // Complete
+    }
+    return false
+}
+
+/**
+ * Reset the shooting sequence to the beginning.
+ * Call this before starting a new shooting sequence.
+ */
+fun resetShootingSequence(timer: Timer, actionState: IntArray) {
+    timer.resetTimer()
+    actionState[0] = 0
 }

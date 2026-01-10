@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.di
 import com.pedropathing.follower.Follower
 import com.qualcomm.robotcore.hardware.HardwareMap
 import dev.frozenmilk.dairy.mercurial.continuations.Closure
+import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.loop
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.sequence
 import dev.frozenmilk.dairy.mercurial.continuations.Fiber
@@ -50,7 +51,6 @@ abstract class HardwareContainer(@get:Provides val hardwareMap: HardwareMap, @ge
     }
     
     // Subsystems
-    abstract val drive: MecanumSubsystem
     abstract val intake: IntakeSubsystem
     abstract val outtake: OuttakeSubsystem
     abstract val limelight: LimelightSubsystem
@@ -63,11 +63,11 @@ abstract class HardwareContainer(@get:Provides val hardwareMap: HardwareMap, @ge
      * Schedule this once in your OpMode to enable automatic subsystem updates.
      * 
      * Subsystems are updated in a fixed, deterministic order:
-     * drive -> intake -> outtake -> spindexer -> transfer -> limelight
+     * follower -> intake -> outtake -> spindexer -> transfer -> limelight
      */
     fun startPeriodic(): Fiber = scheduler.schedule(loop({ true },
         sequence(
-            drive.periodic(),
+            exec { follower.update() },
             intake.periodic(),
             outtake.periodic(),
             spindexer.periodic(),

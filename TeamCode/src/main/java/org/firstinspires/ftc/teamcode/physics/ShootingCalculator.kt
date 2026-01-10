@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.physics
 
-import org.firstinspires.ftc.teamcode.constants.ShootingConstants
+import org.firstinspires.ftc.teamcode.subsystems.LimelightSubsystem
+import org.firstinspires.ftc.teamcode.subsystems.OuttakeSubsystem
 import kotlin.math.*
 
 /**
@@ -20,36 +21,30 @@ object ShootingCalculator {
      */
     fun calculateRequiredVelocity(
         horizontalDistance: Double,
-        launchAngle: Double = ShootingConstants.LAUNCH_ANGLE_RADIANS
+        launchAngle: Double = OuttakeSubsystem.LAUNCH_ANGLE_RADIANS
     ): Double? {
-        val heightDiff = ShootingConstants.GOAL_TOP_LIP_HEIGHT_METERS -
-                        ShootingConstants.LAUNCH_HEIGHT_METERS
+        val heightDiff = LimelightSubsystem.GOAL_TOP_LIP_HEIGHT_METERS -
+                        OuttakeSubsystem.LAUNCH_HEIGHT_METERS
 
-        // Use quadratic formula for time of flight
-        // Vertical motion: h(t) = h0 + v_y*t - 0.5*g*t²
-        // At landing: 0 = heightDiff + v_y*t - 0.5*g*t²
-        
-        val v_y = horizontalDistance * tan(launchAngle)  // Initial vertical velocity
-        val a = 0.5 * GRAVITY
-        val b = -v_y
-        val c = -heightDiff
-        
-        val discriminant = b*b - 4*a*c
-        if (discriminant < 0) return null  // Shot impossible
-        
-        // Solve quadratic equation
-        val t1 = (-b + sqrt(discriminant)) / (2*a)
-        val t2 = (-b - sqrt(discriminant)) / (2*a)
-        
-        // Take the positive time
-        val timeOfFlight = maxOf(t1, t2)
-        if (timeOfFlight <= 0) return null
-        
-        // Required horizontal velocity
-        val v_x = horizontalDistance / timeOfFlight
-        
-        // Total velocity magnitude
-        return sqrt(v_x*v_x + v_y*v_y)
+        // Physics: Projectile Motion for Velocity
+        // y = x * tan(theta) - (g * x^2) / (2 * v^2 * cos^2(theta))
+        // Solve for v:
+        // v = sqrt( (g * x^2) / (2 * cos^2(theta) * (x * tan(theta) - y)) )
+
+        val x = horizontalDistance
+        val y = heightDiff
+        val theta = launchAngle
+        val g = GRAVITY
+
+        val cosTheta = cos(theta)
+        val tanTheta = tan(theta)
+
+        val numerator = g * x * x
+        val denominator = 2 * cosTheta * cosTheta * (x * tanTheta - y)
+
+        if (denominator <= 0) return null // Shot impossible (target too high for this angle/distance)
+
+        return sqrt(numerator / denominator)
     }
     
     /**
@@ -65,8 +60,8 @@ object ShootingCalculator {
         // RPM = ω * 60 / (2π)
         
         val angularVelocity = ballVelocity / 
-            (ShootingConstants.FLYWHEEL_RADIUS_METERS *
-             ShootingConstants.FLYWHEEL_TO_BALL_EFFICIENCY)
+            (OuttakeSubsystem.FLYWHEEL_RADIUS_METERS *
+             OuttakeSubsystem.FLYWHEEL_TO_BALL_EFFICIENCY)
         
         return angularVelocity * 60.0 / (2.0 * PI)
     }
@@ -79,8 +74,8 @@ object ShootingCalculator {
      */
     fun rpmToVelocity(rpm: Double): Double {
         val angularVelocity = rpm * 2.0 * PI / 60.0  // Convert to rad/s
-        return angularVelocity * ShootingConstants.FLYWHEEL_RADIUS_METERS *
-               ShootingConstants.FLYWHEEL_TO_BALL_EFFICIENCY
+        return angularVelocity * OuttakeSubsystem.FLYWHEEL_RADIUS_METERS *
+               OuttakeSubsystem.FLYWHEEL_TO_BALL_EFFICIENCY
     }
     
     /**
@@ -92,8 +87,8 @@ object ShootingCalculator {
      * @return ShotParameters or null if shot impossible
      */
     fun calculateShotParameters(distance: Double): ShotParameters? {
-        if (distance < ShootingConstants.MIN_SHOT_DISTANCE_METERS ||
-            distance > ShootingConstants.MAX_SHOT_DISTANCE_METERS) {
+        if (distance < OuttakeSubsystem.MIN_SHOT_DISTANCE_METERS ||
+            distance > OuttakeSubsystem.MAX_SHOT_DISTANCE_METERS) {
             return null
         }
 
@@ -103,8 +98,8 @@ object ShootingCalculator {
         val rpm = velocityToRPM(velocity)
         
         // Check RPM bounds
-        if (rpm > ShootingConstants.MAX_FLYWHEEL_RPM ||
-            rpm < ShootingConstants.MIN_STABLE_RPM) {
+        if (rpm > OuttakeSubsystem.MAX_FLYWHEEL_RPM ||
+            rpm < OuttakeSubsystem.MIN_STABLE_RPM) {
             return null
         }
         
@@ -147,14 +142,14 @@ object ShootingCalculator {
         val omega_initial = currentRPM * 2.0 * PI / 60.0
         
         // Initial rotational kinetic energy
-        val I = ShootingConstants.FLYWHEEL_MOMENT_OF_INERTIA
+        val I = OuttakeSubsystem.FLYWHEEL_MOMENT_OF_INERTIA
         val KE_rotational = 0.5 * I * omega_initial * omega_initial
         
         // Ball velocity from flywheel (accounts for efficiency)
         val v_ball = rpmToVelocity(currentRPM)
         
         // Energy transferred to ball
-        val m_ball = ShootingConstants.BALL_MASS_KG
+        val m_ball = OuttakeSubsystem.BALL_MASS_KG
         val KE_ball = 0.5 * m_ball * v_ball * v_ball
         
         // Remaining rotational energy
@@ -182,11 +177,11 @@ object ShootingCalculator {
         
         // Time = Δrpm / acceleration_rate
         // Acceleration rate from motor torque and flywheel inertia
-        val time = rpm_delta / ShootingConstants.MOTOR_ACCELERATION_RATE_RPM_PER_SEC
+        val time = rpm_delta / OuttakeSubsystem.MOTOR_ACCELERATION_RATE_RPM_PER_SEC
         
         // Add safety margin (20%) and enforce minimum
-        return (time * ShootingConstants.RECOVERY_TIME_SAFETY_FACTOR)
-            .coerceAtLeast(ShootingConstants.MIN_RECOVERY_TIME_SECONDS)
+        return (time * OuttakeSubsystem.RECOVERY_TIME_SAFETY_FACTOR)
+            .coerceAtLeast(OuttakeSubsystem.MIN_RECOVERY_TIME_SECONDS)
     }
     
     /**
@@ -210,7 +205,7 @@ object ShootingCalculator {
      */
     fun calculateBallContactTime(rpm: Double): Double {
         val omega = rpm * 2.0 * PI / 60.0  // rad/s
-        val contact_angle_rad = ShootingConstants.BALL_CONTACT_ARC_DEGREES * PI / 180.0
+        val contact_angle_rad = OuttakeSubsystem.BALL_CONTACT_ARC_DEGREES * PI / 180.0
         return contact_angle_rad / omega
     }
     

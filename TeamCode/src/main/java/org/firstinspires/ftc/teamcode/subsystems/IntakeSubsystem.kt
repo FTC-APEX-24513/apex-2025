@@ -1,18 +1,25 @@
 package org.firstinspires.ftc.teamcode.subsystems
 
+import com.acmerobotics.dashboard.config.Config
 import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.HardwareMap
 import dev.frozenmilk.dairy.mercurial.continuations.Closure
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
 import me.tatarka.inject.annotations.Inject
-import org.firstinspires.ftc.teamcode.constants.RobotConstants
 import org.firstinspires.ftc.teamcode.di.HardwareScoped
 
+@Config
 @Inject
 @HardwareScoped
 class IntakeSubsystem(hardwareMap: HardwareMap) : Subsystem() {
     private val motor = hardwareMap.dcMotor.get("intake").apply {
         zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
+    }
+
+    companion object {
+        @JvmField var COLLECT_POWER = 0.9
+        @JvmField var EJECT_POWER = -0.9
+        @JvmField var TRIGGER_THRESHOLD = 0.01
     }
 
     sealed interface State {
@@ -27,8 +34,8 @@ class IntakeSubsystem(hardwareMap: HardwareMap) : Subsystem() {
     override fun periodic(): Closure = exec {
         motor.power = when (state) {
             is State.Idle -> 0.0
-            is State.Collecting -> RobotConstants.INTAKE_COLLECT_POWER
-            is State.Ejecting -> RobotConstants.INTAKE_EJECT_POWER
+            is State.Collecting -> COLLECT_POWER
+            is State.Ejecting -> EJECT_POWER
         }
     }
 
