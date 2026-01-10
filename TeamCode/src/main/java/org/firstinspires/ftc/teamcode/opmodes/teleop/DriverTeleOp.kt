@@ -213,7 +213,7 @@ val driverTeleOp = Mercurial.teleop {
             // Motor power and voltage telemetry
             val motorPower = container.outtake.getCurrentMotorPower()
             val effectiveVoltage = motorPower * batteryVoltage
-            telemetryA.addData("Motor Power", "%.2f (%.1f%%)".format(motorPower, motorPower * 100.0))
+            telemetryA.addData("Motor Power", "%.2f".format(motorPower, motorPower * 100.0))
             telemetryA.addData("Effective V", "%.2fV".format(effectiveVoltage))
 
             val lockedRPM = container.outtake.lockedRPM
@@ -231,8 +231,7 @@ val driverTeleOp = Mercurial.teleop {
             // === SPINDEXER ===
             telemetryA.addLine("")
             telemetryA.addLine("=== SPINDEXER ===")
-            telemetryA.addData("State", container.spindexer.state::class.simpleName ?: "Unknown")
-            telemetryA.addData("Angle", "%.1f deg".format(container.spindexer.getCurrentAngle()))
+            // Show detailed diagnostic data
 
             // === TRANSFER ===
             telemetryA.addLine("")
