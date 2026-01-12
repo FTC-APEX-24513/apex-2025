@@ -1,17 +1,17 @@
 package org.firstinspires.ftc.teamcode.subsystems
 
-import com.acmerobotics.dashboard.config.Config
+import com.bylazar.configurables.annotations.Configurable
 import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.HardwareMap
 import dev.frozenmilk.dairy.mercurial.continuations.Closure
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
 import me.tatarka.inject.annotations.Inject
-import org.firstinspires.ftc.teamcode.di.HardwareScoped
+import org.firstinspires.ftc.teamcode.di.HardwareScope
 import org.firstinspires.ftc.teamcode.util.VoltageCompensation
 
-@Config
+@Configurable
 @Inject
-@HardwareScoped
+@HardwareScope
 class IntakeSubsystem(hardwareMap: HardwareMap, private val voltageCompensation: VoltageCompensation) : Subsystem() {
     private val motor = hardwareMap.dcMotor.get("intake").apply {
         zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
@@ -20,7 +20,6 @@ class IntakeSubsystem(hardwareMap: HardwareMap, private val voltageCompensation:
     companion object {
         @JvmField var COLLECT_POWER = 0.9
         @JvmField var EJECT_POWER = -0.9
-        @JvmField var TRIGGER_THRESHOLD = 0.01
     }
 
     sealed interface State {

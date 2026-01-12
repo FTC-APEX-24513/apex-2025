@@ -19,6 +19,7 @@ dependencyResolutionManagement {
         mavenCentral()
         maven { url = uri("https://maven.pedropathing.com/") }
         maven { url = uri("https://repo.dairy.foundation/releases") }
+//        maven { url = uri("https://mymaven.bylazar.com/releases") }
     }
 }
 
