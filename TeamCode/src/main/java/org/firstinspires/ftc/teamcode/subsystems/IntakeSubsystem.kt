@@ -1,18 +1,25 @@
 package org.firstinspires.ftc.teamcode.subsystems
 
+import com.bylazar.configurables.annotations.Configurable
 import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.HardwareMap
 import dev.frozenmilk.dairy.mercurial.continuations.Closure
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
 import me.tatarka.inject.annotations.Inject
-import org.firstinspires.ftc.teamcode.constants.RobotConstants
-import org.firstinspires.ftc.teamcode.di.HardwareScoped
+import org.firstinspires.ftc.teamcode.di.HardwareScope
+import org.firstinspires.ftc.teamcode.util.VoltageCompensation
 
+@Configurable
 @Inject
-@HardwareScoped
-class IntakeSubsystem(hardwareMap: HardwareMap) : Subsystem() {
+@HardwareScope
+class IntakeSubsystem(hardwareMap: HardwareMap, private val voltageCompensation: VoltageCompensation) : Subsystem() {
     private val motor = hardwareMap.dcMotor.get("intake").apply {
         zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
+    }
+
+    companion object {
+        @JvmField var COLLECT_POWER = 0.9
+        @JvmField var EJECT_POWER = -0.9
     }
 
     sealed interface State {
@@ -25,11 +32,12 @@ class IntakeSubsystem(hardwareMap: HardwareMap) : Subsystem() {
         private set
 
     override fun periodic(): Closure = exec {
-        motor.power = when (state) {
+        val rawPower = when (state) {
             is State.Idle -> 0.0
-            is State.Collecting -> RobotConstants.INTAKE_COLLECT_POWER
-            is State.Ejecting -> RobotConstants.INTAKE_EJECT_POWER
+            is State.Collecting -> COLLECT_POWER
+            is State.Ejecting -> EJECT_POWER
         }
+        motor.power = voltageCompensation.compensate(rawPower)
     }
 
     fun collect(): Closure = exec { state = State.Collecting }

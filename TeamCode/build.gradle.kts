@@ -144,5 +144,5 @@ dependencies {
     testImplementation(libs.junit)
 
     // FTC Dashboard
-    implementation(libs.ftc.dashboard)
+    implementation(libs.bylazar.fullpanels)
 }

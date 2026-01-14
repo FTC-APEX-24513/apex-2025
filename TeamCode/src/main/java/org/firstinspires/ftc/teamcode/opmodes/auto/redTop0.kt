@@ -1,64 +1,49 @@
 package org.firstinspires.ftc.teamcode.opmodes.auto
 
-import com.pedropathing.follower.Follower
-import com.pedropathing.geometry.BezierLine
-import com.pedropathing.geometry.Pose
-import com.pedropathing.paths.PathChain
-import com.pedropathing.util.Timer
+import com.bylazar.telemetry.PanelsTelemetry
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
-import dev.frozenmilk.dairy.mercurial.continuations.Continuations.loop
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.sequence
+import dev.frozenmilk.dairy.mercurial.continuations.Continuations.wait
 import dev.frozenmilk.dairy.mercurial.ftc.Mercurial
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants
-import org.firstinspires.ftc.teamcode.subsystems.LimelightSubsystem
-import org.firstinspires.ftc.teamcode.subsystems.OuttakeSubsystem
+import org.firstinspires.ftc.teamcode.di.HardwareContainer
+import org.firstinspires.ftc.teamcode.di.create
 
 @Suppress("UNUSED")
-val redTop0 = Mercurial.autonomous {
-    // subsystems
-    val outtake = OuttakeSubsystem(hardwareMap)
-    val limelight = LimelightSubsystem()
-    limelight.init(hardwareMap, telemetry)
-
-    // pathing
-    val follower: Follower = Constants.createFollower(hardwareMap)
-    val pathTimer = Timer()
-    var pathState = 0
-
-    val startPoseRedTop = Pose(88.0, 88.0, Math.toRadians(180.0))
-    val redScore = Pose() // as in original
-
-    lateinit var redStartToScore: PathChain
-
-    fun buildPaths() {
-        redStartToScore = follower.pathBuilder()
-            .addPath(BezierLine(startPoseRedTop, redScore))
-            .setLinearHeadingInterpolation(startPoseRedTop.heading, redScore.heading)
-            .build()
+val redTop = Mercurial.autonomous {
+    val telemetry = PanelsTelemetry.telemetry
+    val container = HardwareContainer::class.create(hardwareMap, scheduler).also {
+        it.startPeriodic()
     }
 
-    // initialize
-    buildPaths()
-    follower.setStartingPose(startPoseRedTop)
+    waitForStart()
+    container.follower.startTeleopDrive(true)
 
-    // main autonomous sequence
     schedule(
         sequence(
-            exec { pathState = 0 },
-            loop(
-                exec {
-                    follower.update()
-                    when (pathState) {
-                        0 -> {
-                            follower.followPath(redStartToScore)
-                            outtake.outtake()
-                            pathState = 1
-                        }
-                        1 -> if (!follower.isBusy) pathState = 2
-                        2 -> { /* Finished */ }
-                    }
-                }
-            )
+            exec {
+                container.follower.setTeleOpDrive(-1.0, 0.0, 0.0)
+                container.outtake.spinToRPMDirect(4100.0)
+            },
+            wait(.95),
+            exec { container.follower.setTeleOpDrive(0.0, 0.0, 0.0) },
+            wait(3.0),
+            container.transfer.transfer(),
+            wait(2.0),
+            container.transfer.reset(),
+            wait(.75),
+            container.spindexer.rotateLeft(),
+            wait(.9),
+            container.spindexer.rotateLeft(),
+            wait(.9),
+            container.transfer.transfer(),
+            wait(2.0),
+            container.transfer.reset(),
+            container.outtake.stop(),
+            exec {
+                container.follower.setTeleOpDrive(0.0, -0.5, 0.0)
+            },
+            wait(0.5),
+            exec { container.follower.setTeleOpDrive(0.0, 0.0, 0.0) }
         )
     )
 

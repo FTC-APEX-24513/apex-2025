@@ -9,7 +9,7 @@ import org.firstinspires.ftc.teamcode.di.HardwareContainer
 import org.firstinspires.ftc.teamcode.di.create
 
 @Suppress("UNUSED")
-val blueTop = Mercurial.autonomous {
+val bottomShooting = Mercurial.autonomous {
     val telemetry = PanelsTelemetry.telemetry
     val container = HardwareContainer::class.create(hardwareMap, scheduler).also {
         it.startPeriodic()
@@ -20,12 +20,7 @@ val blueTop = Mercurial.autonomous {
 
     schedule(
         sequence(
-            exec {
-                container.follower.setTeleOpDrive(-1.0, 0.0, 0.0)
-                container.outtake.spinToRPMDirect(4100.0)
-            },
-            wait(.95),
-            exec { container.follower.setTeleOpDrive(0.0, 0.0, 0.0) },
+            container.outtake.setPower(0.95),
             wait(3.0),
             container.transfer.transfer(),
             wait(2.0),
@@ -39,10 +34,8 @@ val blueTop = Mercurial.autonomous {
             wait(2.0),
             container.transfer.reset(),
             container.outtake.stop(),
-            exec {
-                container.follower.setTeleOpDrive(0.0, 0.5, 0.0)
-            },
-            wait(0.5),
+            exec { container.follower.setTeleOpDrive(0.5, 0.0, 0.0) },
+            wait(0.4),
             exec { container.follower.setTeleOpDrive(0.0, 0.0, 0.0) }
         )
     )
