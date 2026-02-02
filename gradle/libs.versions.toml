@@ -1,10 +1,10 @@
 [versions]
 # Android
 agp = "8.11.2"
-appcompat = "1.2.0"
-coreKtx = "1.6.0"
-desugar = "2.1.4"
-gradle = "8.7.0"
+appcompat = "1.7.1"
+coreKtx = "1.17.0"
+desugar = "2.1.5"
+gradle = "8.7.3"
 
 # Dairy (FrozenMilk)
 mercurial = "2.0.0-beta9"

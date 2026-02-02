@@ -37,6 +37,7 @@ abstract class HardwareContainer(@get:Provides val hardwareMap: HardwareMap, @ge
 
     abstract val intake: IntakeSubsystem
     abstract val outtake: OuttakeSubsystem
+    abstract val spindexer: SpindexerSubsystem
     abstract val limelight: LimelightSubsystem
     abstract val transfer: TransferSubsystem
     abstract val follower: Follower
@@ -48,6 +49,7 @@ abstract class HardwareContainer(@get:Provides val hardwareMap: HardwareMap, @ge
                 exec { follower.update() },
                 intake.periodic(),
                 outtake.periodic(),
+                spindexer.periodic(),
                 transfer.periodic(),
                 limelight.periodic()
             )

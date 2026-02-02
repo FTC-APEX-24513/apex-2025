@@ -68,26 +68,26 @@ val driverTeleOp = Mercurial.teleop {
 
     bindSpawn(risingEdge { gamepad1.right_bumper }, container.intake.collect())
     bindSpawn(risingEdge { !gamepad1.right_bumper }, container.intake.stop())
-    bindSpawn(
-        risingEdge { gamepad1.left_bumper },
-        exec { container.outtake.spinToRPMDirect(OuttakeSubsystem.DEFAULT_SHOOTING_RPM) }
-    )
-    bindSpawn(risingEdge { gamepad1.left_trigger < 0.05 }, exec {
-        if (container.outtake.lockedRPM == null) {
-            container.outtake.setState(OuttakeSubsystem.State.Off)
-        }
-    })
+//    bindSpawn(
+//        risingEdge { gamepad1.left_bumper },
+//        exec { container.outtake.spinToRPMDirect(OuttakeSubsystem.DEFAULT_SHOOTING_RPM) }
+//    )
+//    bindSpawn(risingEdge { gamepad1.left_trigger < 0.05 }, exec {
+//        if (container.outtake.lockedRPM == null) {
+//            container.outtake.setState(OuttakeSubsystem.State.Off)
+//        }
+//    })
 
     bindSpawn(risingEdge { gamepad1.dpad_up }, container.transfer.transfer())
     bindSpawn(risingEdge { gamepad1.dpad_down }, container.transfer.reset())
-    bindSpawn(
-        risingEdge { gamepad1.dpad_right },
-        sequence(container.transfer.reset(), container.spindexer.rotateRight())
-    )
-    bindSpawn(
-        risingEdge { gamepad1.dpad_left },
-        sequence(container.transfer.reset(), container.spindexer.rotateLeft())
-    )
+//    bindSpawn(
+//        risingEdge { gamepad1.dpad_right },
+//        sequence(container.transfer.reset(), container.spindexer.rotateRight())
+//    )
+//    bindSpawn(
+//        risingEdge { gamepad1.dpad_left },
+//        sequence(container.transfer.reset(), container.spindexer.rotateLeft())
+//    )
 
     bindSpawn(risingEdge { gamepad1.cross }, container.intake.eject())
     bindSpawn(risingEdge { !gamepad1.cross }, container.intake.stop())

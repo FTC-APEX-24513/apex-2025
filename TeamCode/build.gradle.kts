@@ -143,6 +143,6 @@ dependencies {
     androidTestImplementation(libs.junit.ext)
     testImplementation(libs.junit)
 
-    // FTC Dashboard
+    // Panels
     implementation(libs.bylazar.fullpanels)
 }
