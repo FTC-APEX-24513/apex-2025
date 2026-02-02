@@ -9,6 +9,7 @@ pluginManagement {
         }
         mavenCentral()
         gradlePluginPortal()
+        maven { url = uri("https://repo.dairy.foundation/releases") }
     }
 }
 dependencyResolutionManagement {
@@ -17,11 +18,11 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven { url = uri("https://maven.pedropathing.com/") }
-        maven { url = uri("https://mymaven.bylazar.com/releases") }
         maven { url = uri("https://repo.dairy.foundation/releases") }
+//        maven { url = uri("https://mymaven.bylazar.com/releases") }
     }
 }
 
-rootProject.name = "apex-2026"
+rootProject.name = "apex-2025"
 include(":TeamCode")
 include(":FtcRobotController")
