@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.opmodes.auto
 
-import com.bylazar.telemetry.PanelsTelemetry
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.sequence
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.wait
@@ -10,7 +9,6 @@ import org.firstinspires.ftc.teamcode.di.create
 
 @Suppress("UNUSED")
 val bottomShooting = Mercurial.autonomous {
-    val telemetry = PanelsTelemetry.telemetry
     val container = HardwareContainer::class.create(hardwareMap, scheduler).also {
         it.startPeriodic()
     }

@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.subsystems
 
-import com.bylazar.configurables.annotations.Configurable
+import com.acmerobotics.dashboard.config.Config
 import com.pedropathing.follower.Follower
 import com.qualcomm.hardware.limelightvision.Limelight3A
 import com.qualcomm.robotcore.hardware.HardwareMap
@@ -10,7 +10,7 @@ import me.tatarka.inject.annotations.Inject
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D
 import org.firstinspires.ftc.teamcode.di.HardwareScope
 
-@Configurable
+@Config
 @Inject
 @HardwareScope
 class LimelightSubsystem(hardwareMap: HardwareMap, val follower: Follower) : Subsystem() {

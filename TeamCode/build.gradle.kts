@@ -94,8 +94,8 @@ android {
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
 
     ndkVersion = "21.3.6528147"
@@ -106,20 +106,18 @@ android {
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
     }
 }
 
 dependencies {
-    // Android
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core.ktx)
 
-    // Dairy (FrozenMilk)
-    implementation(libs.dairy.mercurial)
+    implementation(libs.kotlin.inject.runtime)
+    ksp(libs.kotlin.inject.compiler)
 
-    // FTC
     annotationProcessor(files("lib/OpModeAnnotationProcessor.jar"))
     implementation(project(":FtcRobotController"))
     implementation(libs.ftc.blocks)
@@ -131,18 +129,14 @@ dependencies {
     implementation(libs.ftc.robotserver)
     implementation(libs.ftc.vision)
 
-    // Kotlin
-    implementation(libs.kotlin.inject.runtime)
-    ksp(libs.kotlin.inject.compiler)
+    implementation(libs.dairy.mercurial)
+    implementation(libs.dairy.slothboard)
 
-    // Pedro Pathing
     implementation(libs.pedro.pathing)
     implementation(libs.pedro.telemetry)
-
-    // Testing
-    androidTestImplementation(libs.junit.ext)
-    testImplementation(libs.junit)
-
-    // Panels
-    implementation(libs.bylazar.fullpanels)
+}
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
 }

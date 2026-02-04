@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.opmodes.teleop
 
-import com.bylazar.telemetry.PanelsTelemetry
 import com.qualcomm.robotcore.hardware.Gamepad
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.loop
@@ -11,14 +10,12 @@ import dev.frozenmilk.dairy.mercurial.ftc.Mercurial
 import org.firstinspires.ftc.teamcode.constants.Alliance
 import org.firstinspires.ftc.teamcode.di.HardwareContainer
 import org.firstinspires.ftc.teamcode.di.create
-import org.firstinspires.ftc.teamcode.subsystems.OuttakeSubsystem
 
 /**
  * Main Driver TeleOp mode.
  */
 @Suppress("UNUSED")
 val driverTeleOp = Mercurial.teleop {
-    val telemetry = PanelsTelemetry.telemetry
     val container = HardwareContainer::class.create(hardwareMap, scheduler).also {
         it.startPeriodic()
     }

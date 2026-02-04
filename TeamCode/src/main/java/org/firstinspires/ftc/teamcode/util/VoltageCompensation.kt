@@ -1,11 +1,11 @@
 package org.firstinspires.ftc.teamcode.util
 
-import com.bylazar.configurables.annotations.Configurable
+import com.acmerobotics.dashboard.config.Config
 import com.qualcomm.robotcore.hardware.VoltageSensor
 import me.tatarka.inject.annotations.Inject
 import org.firstinspires.ftc.teamcode.di.HardwareScope
 
-@Configurable
+@Config
 @Inject
 @HardwareScope
 class VoltageCompensation(private val voltageSensor: VoltageSensor) {

@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.subsystems
 
-import com.bylazar.configurables.annotations.Configurable
+import com.acmerobotics.dashboard.config.Config
 import com.qualcomm.robotcore.hardware.HardwareMap
 import com.qualcomm.robotcore.hardware.Servo
 import dev.frozenmilk.dairy.mercurial.continuations.Closure
@@ -8,7 +8,7 @@ import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
 import me.tatarka.inject.annotations.Inject
 import org.firstinspires.ftc.teamcode.di.HardwareScope
 
-@Configurable
+@Config
 @Inject
 @HardwareScope
 class TransferSubsystem(hardwareMap: HardwareMap) : Subsystem() {

@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.subsystems
 
-import com.bylazar.configurables.annotations.Configurable
+import com.acmerobotics.dashboard.config.Config
 import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.HardwareMap
 import dev.frozenmilk.dairy.mercurial.continuations.Closure
@@ -9,7 +9,7 @@ import me.tatarka.inject.annotations.Inject
 import org.firstinspires.ftc.teamcode.di.HardwareScope
 import org.firstinspires.ftc.teamcode.util.VoltageCompensation
 
-@Configurable
+@Config
 @Inject
 @HardwareScope
 class IntakeSubsystem(hardwareMap: HardwareMap, private val voltageCompensation: VoltageCompensation) : Subsystem() {
