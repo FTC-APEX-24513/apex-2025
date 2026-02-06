@@ -1,26 +1,25 @@
 package org.firstinspires.ftc.teamcode.subsystems
 
 import com.acmerobotics.dashboard.config.Config
-import com.qualcomm.robotcore.hardware.DcMotor
-import com.qualcomm.robotcore.hardware.HardwareMap
 import dev.frozenmilk.dairy.mercurial.continuations.Closure
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
+import dev.frozenmilk.dairy.mercurial.continuations.Continuations.loop
+import dev.frozenmilk.dairy.mercurial.continuations.Continuations.match
+import dev.frozenmilk.dairy.mercurial.continuations.registers.VarRegister
 import me.tatarka.inject.annotations.Inject
-import org.firstinspires.ftc.teamcode.di.HardwareScoped
-import org.firstinspires.ftc.teamcode.util.VoltageCompensation
+import org.firstinspires.ftc.teamcode.di.HardwareFactory
+import org.firstinspires.ftc.teamcode.di.HardwareScope
 
 @Config
 @Inject
-@HardwareScoped
-class IntakeSubsystem(hardwareMap: HardwareMap, private val voltageCompensation: VoltageCompensation) : Subsystem() {
-    private val motor = hardwareMap.dcMotor.get("intake").apply {
-        zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
-    }
+@HardwareScope
+class IntakeSubsystem(factory: HardwareFactory) : Subsystem<IntakeSubsystem.State, IntakeSubsystem.State>() {
+
+    private val servo = factory.getCRServo("intake")
 
     companion object {
-        @JvmField var COLLECT_POWER = 0.9
-        @JvmField var EJECT_POWER = -0.9
-        @JvmField var TRIGGER_THRESHOLD = 0.01
+        @JvmField var COLLECT_POWER = 0.99
+        @JvmField var EJECT_POWER = -0.99
     }
 
     sealed interface State {
@@ -29,19 +28,24 @@ class IntakeSubsystem(hardwareMap: HardwareMap, private val voltageCompensation:
         object Ejecting : State
     }
 
-    var state: State = State.Idle
-        private set
+    override val initialState = { State.Idle }
+    override val transition = { _: State, msg: State -> msg }
 
-    override fun periodic(): Closure = exec {
-        val rawPower = when (state) {
-            is State.Idle -> 0.0
-            is State.Collecting -> COLLECT_POWER
-            is State.Ejecting -> EJECT_POWER
-        }
-        motor.power = voltageCompensation.compensate(rawPower)
+    override val behavior = { register: VarRegister<State> ->
+        match { register.get() }
+            .branch(State.Idle, exec {
+                servo.power = 0.0
+            })
+            .branch(State.Collecting, loop(exec {
+                servo.power = COLLECT_POWER
+            }))
+            .branch(State.Ejecting, loop(exec {
+                servo.power = EJECT_POWER
+            }))
+            .assertExhaustive()
     }
 
-    fun collect(): Closure = exec { state = State.Collecting }
-    fun eject(): Closure = exec { state = State.Ejecting }
-    fun stop(): Closure = exec { state = State.Idle }
+    fun collect(): Closure = update(State.Collecting)
+    fun eject(): Closure = update(State.Ejecting)
+    fun stop(): Closure = update(State.Idle)
 }

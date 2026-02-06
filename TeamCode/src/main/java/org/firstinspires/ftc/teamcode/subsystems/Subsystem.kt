@@ -1,32 +1,30 @@
 package org.firstinspires.ftc.teamcode.subsystems
 
+import dev.frozenmilk.dairy.mercurial.continuations.Actors
 import dev.frozenmilk.dairy.mercurial.continuations.Closure
-import dev.frozenmilk.dairy.mercurial.continuations.Continuations.noop
+import dev.frozenmilk.dairy.mercurial.continuations.channels.Channels
+import dev.frozenmilk.dairy.mercurial.continuations.registers.VarRegister
 
 /**
- * Base class for all robot subsystems.
- * 
- * Subsystems extend this class and override [periodic] to define
- * state-based hardware updates that run every loop iteration.
- * 
- * Example:
- * ```kotlin
- * class IntakeSubsystem(hardwareMap: HardwareMap) : Subsystem() {
- *     private val motor = hardwareMap.dcMotor.get("intake")
- *     var power = 0.0
- *     
- *     override fun periodic(): Closure = exec {
- *         motor.power = power
- *     }
- * }
- * ```
+ * A base class for all subsystems using Mercurial Actors.
  */
-abstract class Subsystem {
+abstract class Subsystem<S, M> {
+    protected abstract val initialState: () -> S
+    protected abstract val transition: (S, M) -> S
+    protected abstract val behavior: (VarRegister<S>) -> Closure
+
+    val actor by lazy {
+        Actors.actor(
+            initialState,
+            transition,
+            behavior
+        )
+    }
+
     /**
-     * Closure that runs every loop iteration to update hardware.
-     * Override this to define subsystem behavior.
-     * 
-     * Default implementation returns [noop] (does nothing).
+     * Helper to send a message to this subsystem's Actor.
      */
-    open fun periodic(): Closure = noop()
+    protected fun update(message: M): Closure {
+        return Channels.send({ message }, { actor.tx })
+    }
 }
