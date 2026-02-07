@@ -5,6 +5,7 @@ import com.qualcomm.hardware.limelightvision.Limelight3A
 import com.qualcomm.robotcore.hardware.CRServo
 import com.qualcomm.robotcore.hardware.DcMotorEx
 import com.qualcomm.robotcore.hardware.HardwareMap
+import com.qualcomm.robotcore.hardware.AnalogInput
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor
 import com.qualcomm.robotcore.hardware.Servo
 import me.tatarka.inject.annotations.Inject
@@ -42,5 +43,9 @@ class HardwareFactory(
 
     fun getColorSensor(name: String): NormalizedColorSensor {
         return hardwareMap.get(NormalizedColorSensor::class.java, name)
+    }
+
+    fun getAnalogInput(name: String): AnalogInput {
+        return hardwareMap.get(AnalogInput::class.java, name)
     }
 }

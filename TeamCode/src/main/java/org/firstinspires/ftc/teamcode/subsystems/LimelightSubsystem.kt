@@ -59,4 +59,34 @@ class LimelightSubsystem(factory: HardwareFactory) : Subsystem<LimelightSubsyste
         if (result == null || !result.isValid) return null
         return result.botpose_MT2
     }
+
+    /**
+     * Get the horizontal offset to the target (tx).
+     * Negative = target is left of crosshair, Positive = right.
+     * @return tx value in degrees, or null if no valid target
+     */
+    fun getTargetTx(): Double? {
+        val result = limelight.latestResult ?: return null
+        if (!result.isValid) return null
+        return result.tx
+    }
+
+    /**
+     * Get the vertical offset to the target (ty).
+     * Negative = target is below crosshair, Positive = above.
+     * @return ty value in degrees, or null if no valid target
+     */
+    fun getTargetTy(): Double? {
+        val result = limelight.latestResult ?: return null
+        if (!result.isValid) return null
+        return result.ty
+    }
+
+    /**
+     * Check if the Limelight currently has a valid target.
+     */
+    fun hasTarget(): Boolean {
+        val result = limelight.latestResult ?: return false
+        return result.isValid
+    }
 }
