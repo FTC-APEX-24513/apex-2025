@@ -50,7 +50,7 @@ val turretTest = Mercurial.teleop {
 
     schedule(loop({ inLoop }, exec {
         val currentAngle = turret.getCurrentAngle()
-        val targetAngle = turret.getTargetAngle()
+        val targetAngle = turret.targetAngle
         val error = turret.getAngleError()
 
         telemetry.addLine("=== TURRET TEST ===")

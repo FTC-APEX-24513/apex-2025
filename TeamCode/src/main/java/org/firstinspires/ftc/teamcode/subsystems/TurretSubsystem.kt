@@ -124,11 +124,6 @@ class TurretSubsystem(factory: HardwareFactory) : Subsystem<TurretSubsystem.Stat
     }
 
     /**
-     * Get the current target angle.
-     */
-    fun getTargetAngle(): Double = targetAngle
-
-    /**
      * Check if the turret is at the target angle (within tolerance).
      */
     fun isAtTarget(): Boolean {
