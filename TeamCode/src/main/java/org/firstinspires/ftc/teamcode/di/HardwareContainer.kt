@@ -43,11 +43,11 @@ abstract class HardwareContainer(@get:Provides val hardwareMap: HardwareMap, @ge
 
     // Subsystems
     abstract val intake: IntakeSubsystem
-    abstract val limelight: LimelightSubsystem
+//    abstract val limelight: LimelightSubsystem
     abstract val indexer: IndexerSubsystem
     abstract val transfer: TransferSubsystem
-    abstract val outtake: OuttakeSubsystem
-    abstract val turret: TurretSubsystem
+//    abstract val outtake: OuttakeSubsystem
+//    abstract val turret: TurretSubsystem
     abstract val follower: Follower
 
     abstract val hardwareFactory: HardwareFactory
@@ -55,11 +55,11 @@ abstract class HardwareContainer(@get:Provides val hardwareMap: HardwareMap, @ge
     fun startPeriodic(): Fiber = scheduler.schedule(
         parallel(
             intake.actor,
-            limelight.actor,
+//            limelight.actor,
             indexer.actor,
             transfer.actor,
-            outtake.actor,
-            turret.actor,
+//            outtake.actor,
+//            turret.actor,
             loop(
                 exec {
                     follower.update()
