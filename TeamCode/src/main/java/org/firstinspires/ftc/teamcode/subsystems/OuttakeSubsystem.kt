@@ -4,14 +4,19 @@ import com.acmerobotics.dashboard.config.Config
 import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.DcMotorEx
 import com.qualcomm.robotcore.hardware.DcMotorSimple
+import com.qualcomm.robotcore.hardware.Servo
 import dev.frozenmilk.dairy.mercurial.continuations.Closure
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.loop
-import dev.frozenmilk.dairy.mercurial.continuations.Continuations.match
+import dev.frozenmilk.dairy.mercurial.continuations.Continuations.matchType
+import dev.frozenmilk.dairy.mercurial.continuations.channels.Channels
 import dev.frozenmilk.dairy.mercurial.continuations.registers.VarRegister
 import me.tatarka.inject.annotations.Inject
 import org.firstinspires.ftc.teamcode.di.HardwareFactory
 import org.firstinspires.ftc.teamcode.di.HardwareScope
+import org.firstinspires.ftc.teamcode.hardware.MotorGroup
+import org.firstinspires.ftc.teamcode.hardware.ServoGroup
+import org.firstinspires.ftc.teamcode.di.group
 import kotlin.math.abs
 
 @Config
@@ -21,13 +26,13 @@ class OuttakeSubsystem(factory: HardwareFactory) : Subsystem<OuttakeSubsystem.St
 
     companion object {
         @JvmField
-        var MIN_HOOD_ANGLE = 30.0
+        var MIN_HOOD_ANGLE = 20.0
 
         @JvmField
-        var MAX_HOOD_ANGLE = 75.0
+        var MAX_HOOD_ANGLE = 50.0
 
         @JvmField
-        var DEFAULT_HOOD_ANGLE = 45.0
+        var DEFAULT_HOOD_ANGLE = 43.0
 
         @JvmField
         var RPM_TOLERANCE = 50.0
@@ -39,18 +44,19 @@ class OuttakeSubsystem(factory: HardwareFactory) : Subsystem<OuttakeSubsystem.St
         var MAX_RPM = 5000.0
     }
 
-    private val motor0: DcMotorEx = factory.getMotor("outtakeMotor0").apply {
-        mode = DcMotor.RunMode.RUN_USING_ENCODER
-        zeroPowerBehavior = DcMotor.ZeroPowerBehavior.FLOAT
-    }
+    private val flywheel = factory.group<DcMotorEx>(
+        "outtake0" to DcMotorSimple.Direction.FORWARD,
+        "outtake1" to DcMotorSimple.Direction.REVERSE,
+    ).also {
+        it.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER
+        it.zeroPowerBehavior = DcMotor.ZeroPowerBehavior.FLOAT
+    } as MotorGroup
 
-    private val motor1: DcMotorEx = factory.getMotor("outtakeMotor1").apply {
-        mode = DcMotor.RunMode.RUN_USING_ENCODER
-        zeroPowerBehavior = DcMotor.ZeroPowerBehavior.FLOAT
-        direction = DcMotorSimple.Direction.REVERSE
-    }
 
-    private val hoodServo = factory.getServo("outtakeHood")
+    private val hood = factory.group<Servo>(
+        "hood0" to Servo.Direction.FORWARD,
+        "hood1" to Servo.Direction.REVERSE,
+    ) as ServoGroup
 
     @Volatile
     var targetRPM: Double = 0.0
@@ -68,12 +74,13 @@ class OuttakeSubsystem(factory: HardwareFactory) : Subsystem<OuttakeSubsystem.St
 
     sealed interface Request {
         data class SetTarget(val rpm: Double, val hoodAngleDegrees: Double) : Request
+        data class AdjustHood(val angleDegrees: Double) : Request
         object Stop : Request
     }
 
     override val initialState = { State.Idle }
 
-    override val transition = { _: State, msg: Request ->
+    override val transition = { current: State, msg: Request ->
         when (msg) {
             is Request.SetTarget -> {
                 targetRPM = msg.rpm.coerceIn(0.0, MAX_RPM)
@@ -81,26 +88,37 @@ class OuttakeSubsystem(factory: HardwareFactory) : Subsystem<OuttakeSubsystem.St
                 State.Spinning(targetRPM, targetHoodAngle)
             }
 
+            is Request.AdjustHood -> {
+                targetHoodAngle = msg.angleDegrees.coerceIn(MIN_HOOD_ANGLE, MAX_HOOD_ANGLE)
+                when (current) {
+                    is State.Spinning -> State.Spinning(current.rpm, targetHoodAngle)
+                    is State.Idle     -> State.Idle
+                }
+            }
+
             is Request.Stop -> {
                 targetRPM = 0.0
-                targetHoodAngle = DEFAULT_HOOD_ANGLE
+                // Hood angle is intentionally preserved so the servo holds position while idle.
                 State.Idle
             }
         }
     }
 
     override val behavior = { register: VarRegister<State> ->
-        match { register.get() }.branch(State.Idle, exec {
-            motor0.power = 0.0
-            motor1.power = 0.0
-            setHoodServoPosition(DEFAULT_HOOD_ANGLE)
-        }).branch({ state: State -> state is State.Spinning } as State, loop(exec {
-            val state = register.get() as State.Spinning
-            val power = (state.rpm / MAX_RPM).coerceIn(0.0, 1.0)
-            motor0.power = power
-            motor1.power = power
-            setHoodServoPosition(state.hoodAngleDegrees)
-        })).assertExhaustive()
+        matchType({ register.get() })
+            .branch<State.Idle>(exec {
+                flywheel.power = 0.0
+                // Track targetHoodAngle so adjustHood() works even while not spinning.
+                hood.position = angleToServoPosition(targetHoodAngle)
+            })
+            .branch<State.Spinning> { stateReg ->
+                loop(exec {
+                    val state = stateReg.get()
+                    flywheel.power = (state.rpm / MAX_RPM).coerceIn(0.0, 1.0)
+                    hood.position = angleToServoPosition(state.hoodAngleDegrees)
+                })
+            }
+            .assertExhaustive()
     }
 
     /**
@@ -111,10 +129,31 @@ class OuttakeSubsystem(factory: HardwareFactory) : Subsystem<OuttakeSubsystem.St
     fun spinUp(rpm: Double, hoodAngleDegrees: Double): Closure = update(Request.SetTarget(rpm, hoodAngleDegrees))
 
     /**
+     * Lazy overload — reads [rpm] and [hoodAngleDegrees] at send time, not at registration time.
+     * Use when the values change tick-to-tick (e.g. a Kotlin var updated by gamepad input).
+     */
+    fun spinUp(rpm: () -> Double, hoodAngleDegrees: () -> Double): Closure =
+        Channels.send({ Request.SetTarget(rpm(), hoodAngleDegrees()) }, { actor.tx })
+
+    /**
      * Command the outtake to spin up to target RPM using default hood angle.
      * @param rpm Target RPM (0 to MAX_RPM)
      */
     fun spinUp(rpm: Double): Closure = update(Request.SetTarget(rpm, DEFAULT_HOOD_ANGLE))
+
+    /**
+     * Adjust the hood angle without changing the flywheel RPM.
+     * If the outtake is Spinning, updates the hood in-place.
+     * If Idle, the angle is stored and will apply on the next spinUp.
+     * @param angleDegrees Absolute hood angle (MIN_HOOD_ANGLE to MAX_HOOD_ANGLE)
+     */
+    fun adjustHood(angleDegrees: Double): Closure = update(Request.AdjustHood(angleDegrees))
+
+    /**
+     * Lazy overload — evaluates [angleDegrees] at send time.
+     */
+    fun adjustHood(angleDegrees: () -> Double): Closure =
+        Channels.send({ Request.AdjustHood(angleDegrees()) }, { actor.tx })
 
     /**
      * Stop the outtake motors and reset hood to default position.
@@ -126,28 +165,20 @@ class OuttakeSubsystem(factory: HardwareFactory) : Subsystem<OuttakeSubsystem.St
      * Uses motor velocity feedback converted to RPM.
      */
     fun getCurrentRPM(): Double {
-        val velocity0 = motor0.velocity
-        val velocity1 = abs(motor1.velocity)
-
-        val rpm0 = (velocity0 / TICKS_PER_REV) * 60.0
-        val rpm1 = (velocity1 / TICKS_PER_REV) * 60.0
-
+        val rpm0 = (flywheel[0].velocity / TICKS_PER_REV) * 60.0
+        val rpm1 = (abs(flywheel[1].velocity) / TICKS_PER_REV) * 60.0
         return (rpm0 + rpm1) / 2.0
     }
 
     /**
      * Get the current RPM of motor 0.
      */
-    fun getMotor0RPM(): Double {
-        return (motor0.velocity / TICKS_PER_REV) * 60.0
-    }
+    fun getMotor0RPM(): Double = (flywheel[0].velocity / TICKS_PER_REV) * 60.0
 
     /**
      * Get the current RPM of motor 1.
      */
-    fun getMotor1RPM(): Double {
-        return (abs(motor1.velocity) / TICKS_PER_REV) * 60.0
-    }
+    fun getMotor1RPM(): Double = (abs(flywheel[1].velocity) / TICKS_PER_REV) * 60.0
 
     /**
      * Check if the outtake is at the target RPM (within tolerance).
@@ -168,12 +199,5 @@ class OuttakeSubsystem(factory: HardwareFactory) : Subsystem<OuttakeSubsystem.St
     private fun angleToServoPosition(angleDegrees: Double): Double {
         val clampedAngle = angleDegrees.coerceIn(MIN_HOOD_ANGLE, MAX_HOOD_ANGLE)
         return (clampedAngle - MIN_HOOD_ANGLE) / (MAX_HOOD_ANGLE - MIN_HOOD_ANGLE)
-    }
-
-    /**
-     * Set the hood servo to the specified angle in degrees.
-     */
-    private fun setHoodServoPosition(angleDegrees: Double) {
-        hoodServo.position = angleToServoPosition(angleDegrees)
     }
 }

@@ -17,6 +17,7 @@ ftc = "11.0.0"
 # Kotlin
 kotlin = "2.3.0"
 kotlinInject = "0.7.2"
+kotlinpoet = "2.1.0"
 ksp = "2.3.4"
 
 # Pedro Pathing
@@ -54,6 +55,9 @@ ftc-vision = { module = "org.firstinspires.ftc:Vision", version.ref = "ftc" }
 # Kotlin
 kotlin-inject-compiler = { module = "me.tatarka.inject:kotlin-inject-compiler-ksp", version.ref = "kotlinInject" }
 kotlin-inject-runtime = { module = "me.tatarka.inject:kotlin-inject-runtime", version.ref = "kotlinInject" }
+kotlinpoet = { module = "com.squareup:kotlinpoet", version.ref = "kotlinpoet" }
+kotlinpoet-ksp = { module = "com.squareup:kotlinpoet-ksp", version.ref = "kotlinpoet" }
+ksp-api = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "ksp" }
 
 # Pedro Pathing
 pedro-pathing = { module = "com.pedropathing:ftc", version.ref = "pedroPathing" }
@@ -76,4 +80,5 @@ dairy-sloth-load = { id = "dev.frozenmilk.sinister.sloth.load", version.ref = "s
 
 # Kotlin
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

@@ -14,15 +14,15 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 public enum Constants {
     ;
     public static FollowerConstants followerConstants = new FollowerConstants()
-            .mass(0.0) // TODO: Measure robot mass
+            .mass(1.0) // TODO: Measure robot mass
             ;
 
     public static MecanumConstants driveConstants = new MecanumConstants()
             .maxPower(1.0)
-            .leftFrontMotorName("frontLeft") // Port 0
-            .rightFrontMotorName("frontRight") // Port 1
-            .leftRearMotorName("backLeft") // Port 2
-            .rightRearMotorName("backRight") // Port 3
+            .leftFrontMotorName("frontLeft")
+            .rightFrontMotorName("frontRight")
+            .leftRearMotorName("backLeft")
+            .rightRearMotorName("backRight")
             .leftFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
             .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE)
             .rightFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
@@ -32,13 +32,13 @@ public enum Constants {
     // https://pedropathing.com/docs/pathing/tuning/localization/pinpoint
     public static PinpointConstants localizerConstants = new PinpointConstants()
             // TODO: Update odometry pod offsets
-            .forwardPodY(-2.5787401575)
-            .strafePodX(-7.37)
+            .forwardPodY(-3.031496063)
+            .strafePodX(-6.6929133858)
             .distanceUnit(DistanceUnit.INCH)
             .hardwareMapName("pinpoint")
             .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
             .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD)
-            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD)
+            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED)
             ;
 
     public static PathConstraints pathConstraints = new PathConstraints(0.99, 100.0, 1.0, 1.0);

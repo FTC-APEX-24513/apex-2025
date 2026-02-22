@@ -1,193 +1,188 @@
 package org.firstinspires.ftc.teamcode.commands
 
+import com.acmerobotics.dashboard.config.Config
 import dev.frozenmilk.dairy.mercurial.continuations.Closure
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
+import dev.frozenmilk.dairy.mercurial.continuations.Continuations.ifHuh
+import dev.frozenmilk.dairy.mercurial.continuations.Continuations.sequence
 import org.firstinspires.ftc.teamcode.subsystems.LimelightSubsystem
 import org.firstinspires.ftc.teamcode.subsystems.TurretSubsystem
+import kotlin.math.abs
+import kotlin.math.sign
 
 /**
- * Commands for the turret subsystem that integrate with the Limelight
- * for automatic target tracking.
- * 
- * The turret subsystem is kept agnostic of the Limelight - this command file
- * bridges the gap by reading from Limelight and commanding the turret.
- * 
- * Usage patterns:
- * 1. One-shot aiming: Call aimTurret() on a button press
- * 2. Continuous tracking: Call trackTarget() in a loop while a button is held
- * 3. Manual control: Directly use turret.setAngle() bypassing these commands
+ * Commands for the Limelight tx-based turret aiming system.
+ *
+ * Aiming strategy
+ * ---------------
+ * Tracking relies entirely on Limelight tx — the angular error from the camera
+ * crosshair to the goal AprilTag in degrees.  Because the camera sits on the turret,
+ * tx is the direct turret error with no coordinate transforms required.
+ *
+ * Power curve (in TurretSubsystem)
+ * ---------------------------------
+ * Output power is linearly interpolated between MIN_POWER (at TX_TOLERANCE) and
+ * MAX_POWER (at FULL_POWER_TX), so the turret always overcomes static friction even
+ * for small errors and reaches MAX_POWER well before the full range of tx.
+ *
+ * Wire-wrap protection
+ * --------------------
+ * [TurretSubsystem] enforces LIMIT_MIN/LIMIT_MAX for all automated states.  When
+ * tracking, if the direct direction would press against a limit the error is negated
+ * here so the turret goes around the other arc.  The Searching branch auto-reverses
+ * direction inside the subsystem when a limit is hit.
+ *
+ * Searching
+ * ---------
+ * When tx is null, [lockOnGoal] sends a Search message in the last known direction.
+ * The subsystem sweeps at SEARCH_POWER and auto-reverses at limits.
+ *
+ * Alliance selection
+ * ------------------
+ * Set [RED_GOAL_TAG_ID] / [BLUE_GOAL_TAG_ID] to your goal tag fiducial IDs.
+ *
+ * Typical usage
+ * -------------
+ * ```kotlin
+ * schedule(loop({ inLoop }, TurretCommands.lockOnGoal(limelight, turret, Alliance.BLUE) { result ->
+ *     telemetry.addData("tx",     result.tx)
+ *     telemetry.addData("locked", result.isLocked)
+ *     telemetry.addData("source", result.source)
+ * }))
+ * ```
  */
+@Config
 object TurretCommands {
 
-    /**
-     * Result of a turret aim calculation.
-     */
-    data class TurretAimResult(
-        val targetTx: Double,        // Raw tx value from Limelight
-        val currentAngle: Double,    // Current turret angle
-        val targetAngle: Double,     // Calculated target angle
-        val isInDeadZone: Boolean,   // Whether target would be in dead zone
-        val success: Boolean         // Whether calculation succeeded
-    ) {
-        companion object {
-            val FAILED = TurretAimResult(0.0, 0.0, 0.0, false, false)
+    // -------------------------------------------------------------------------
+    // Alliance / tag-ID configuration
+    // -------------------------------------------------------------------------
+
+    @JvmField var RED_GOAL_TAG_ID  = 24
+    @JvmField var BLUE_GOAL_TAG_ID = 20
+
+    enum class Alliance {
+        RED, BLUE;
+
+        val tagId: Int get() = when (this) {
+            RED  -> RED_GOAL_TAG_ID
+            BLUE -> BLUE_GOAL_TAG_ID
         }
     }
 
-    /**
-     * Get the horizontal offset to target from Limelight (tx value).
-     * 
-     * @param limelight The limelight subsystem
-     * @return tx value in degrees, or null if no valid target
-     */
-    fun getTargetOffset(limelight: LimelightSubsystem): Double? {
-        return limelight.getTargetTx()
-    }
+    enum class TrackingSource { TX, SEARCHING }
+
+    // -------------------------------------------------------------------------
+    // Result type
+    // -------------------------------------------------------------------------
+
+    data class TrackingResult(
+        val alliance: Alliance,
+        val tagId: Int,
+        val tagVisible: Boolean,
+        /** Raw tx from the Limelight for the goal tag, degrees. Null if tag not visible. */
+        val tx: Double?,
+        val isLocked: Boolean,
+        val source: TrackingSource,
+        val estimatedPosition: Double,
+        /** Limelight result staleness in ms this tick. High values mean the camera is slow. */
+        val stalenessMs: Long
+    )
+
+    // -------------------------------------------------------------------------
+    // Commands
+    // -------------------------------------------------------------------------
 
     /**
-     * Calculate the absolute turret angle needed to point at the Limelight target.
-     * Uses current turret angle + Limelight tx offset.
-     * 
-     * @param limelight The limelight subsystem for target detection
-     * @param turret The turret subsystem for current angle
-     * @return TurretAimResult with calculated parameters
+     * Builds a tracking Closure that must be placed inside a [loop] by the caller.
+     *
+     * Each tick:
+     *   1. Read tx + result staleness for the goal tag in one snapshot.
+     *   2. If the result is stale (> MAX_TRACKING_STALENESS_MS): send Hold so the
+     *      turret stops rather than running on outdated data.
+     *   3. If tag visible and fresh: apply wire-wrap check, send Track.
+     *   4. If tag not visible and fresh: send Search in the last known direction.
+     *   5. Fire [onResult] with a diagnostic snapshot.
      */
-    fun calculateTurretAngle(limelight: LimelightSubsystem, turret: TurretSubsystem): TurretAimResult {
-        val tx = getTargetOffset(limelight) ?: return TurretAimResult.FAILED
-        
-        val currentAngle = turret.getCurrentAngle()
-        
-        // tx is the offset from center:
-        // Negative tx = target is left of crosshair (need to rotate counter-clockwise)
-        // Positive tx = target is right of crosshair (need to rotate clockwise)
-        // 
-        // To center the target, we add tx to current angle
-        // (assuming positive angles = clockwise rotation when viewed from above)
-        var targetAngle = currentAngle + tx
-        
-        // Normalize to 0-360
-        targetAngle = ((targetAngle % 360.0) + 360.0) % 360.0
-        
-        // Check if target would be in dead zone
-        val isInDeadZone = turret.isInDeadZone(targetAngle)
-        
-        return TurretAimResult(
-            targetTx = tx,
-            currentAngle = currentAngle,
-            targetAngle = targetAngle,
-            isInDeadZone = isInDeadZone,
-            success = true
+    fun lockOnGoal(
+        limelight: LimelightSubsystem,
+        turret: TurretSubsystem,
+        alliance: Alliance,
+        onResult: ((TrackingResult) -> Unit)? = null
+    ): Closure {
+        val tagId = alliance.tagId
+
+        // Plain vars — captured by closure, safe across fiber boundaries.
+        var effectiveTx: Double  = 0.0   // tx after wire-wrap flip, read by turret.track lambda
+        var tagVisible: Boolean  = false
+        var stale: Boolean       = false
+        var lastKnownDir: Double = 1.0
+
+        return sequence(
+            exec {
+                val snapshot = limelight.getTxAndStaleness(tagId)
+                stale = snapshot == null || snapshot.second > TurretSubsystem.MAX_TRACKING_STALENESS_MS
+                val currentTx = snapshot?.first
+
+                tagVisible = !stale && currentTx != null
+
+                if (tagVisible && currentTx != null) {
+                    if (currentTx != 0.0) lastKnownDir = sign(currentTx)
+
+                    // Wire-wrap check: if tracking in the current direction would hit a limit,
+                    // negate the error so the turret goes around the other arc instead.
+                    val atCWLimit  = turret.estimatedPosition >= TurretSubsystem.LIMIT_MAX && currentTx > 0.0
+                    val atCCWLimit = turret.estimatedPosition <= TurretSubsystem.LIMIT_MIN && currentTx < 0.0
+                    effectiveTx = if (atCWLimit || atCCWLimit) -currentTx else currentTx
+                }
+
+                onResult?.invoke(
+                    TrackingResult(
+                        alliance          = alliance,
+                        tagId             = tagId,
+                        tagVisible        = tagVisible,
+                        tx                = currentTx,
+                        isLocked          = tagVisible && abs(effectiveTx) <= TurretSubsystem.TX_TOLERANCE,
+                        source            = when {
+                            stale      -> TrackingSource.SEARCHING
+                            tagVisible -> TrackingSource.TX
+                            else       -> TrackingSource.SEARCHING
+                        },
+                        estimatedPosition = turret.estimatedPosition,
+                        stalenessMs       = snapshot?.second ?: -1L
+                    )
+                )
+            },
+            ifHuh(
+                { stale },
+                // Stale result — hold in place rather than acting on bad data.
+                turret.hold()
+            ).elseHuh(
+                ifHuh(
+                    { tagVisible },
+                    turret.track { effectiveTx }
+                ).elseHuh(
+                    turret.search { lastKnownDir }
+                )
+            )
         )
     }
 
     /**
-     * Calculate turret angle for a specific offset (useful for testing).
-     * 
-     * @param offsetDegrees Horizontal offset in degrees (like tx)
-     * @param turret The turret subsystem for current angle
-     * @return TurretAimResult with calculated parameters
+     * One-shot aim — send one Track or Search command and complete immediately.
+     * For continuous locking use [lockOnGoal] inside a loop.
      */
-    fun calculateTurretAngleForOffset(offsetDegrees: Double, turret: TurretSubsystem): TurretAimResult {
-        val currentAngle = turret.getCurrentAngle()
-        
-        var targetAngle = currentAngle + offsetDegrees
-        targetAngle = ((targetAngle % 360.0) + 360.0) % 360.0
-        
-        val isInDeadZone = turret.isInDeadZone(targetAngle)
-        
-        return TurretAimResult(
-            targetTx = offsetDegrees,
-            currentAngle = currentAngle,
-            targetAngle = targetAngle,
-            isInDeadZone = isInDeadZone,
-            success = true
-        )
+    fun aimOnce(
+        limelight: LimelightSubsystem,
+        turret: TurretSubsystem,
+        alliance: Alliance
+    ): Closure {
+        val tx = limelight.getTargetTxForTag(alliance.tagId)
+        return if (tx != null) turret.track(tx) else turret.search()
     }
 
     /**
-     * Command to aim the turret at the Limelight target.
-     * This is a one-shot command - it calculates once and sets the target.
-     * 
-     * For continuous tracking, call this command repeatedly in a loop,
-     * or use trackTarget() which is designed for that purpose.
-     * 
-     * @param limelight The limelight subsystem for target detection
-     * @param turret The turret subsystem to control
-     * @return Closure that aims the turret
+     * Cut turret power immediately.
      */
-    fun aimTurret(limelight: LimelightSubsystem, turret: TurretSubsystem): Closure {
-        return exec {
-            val aimResult = calculateTurretAngle(limelight, turret)
-            if (aimResult.success) {
-                // setAngle will handle clamping to valid range if in dead zone
-                turret.setAngle(aimResult.targetAngle)
-            }
-        }
-    }
-
-    /**
-     * Command to aim the turret at a specific offset from current position.
-     * Useful for testing without Limelight.
-     * 
-     * @param offsetDegrees Offset from current position in degrees
-     * @param turret The turret subsystem to control
-     * @return Closure that adjusts the turret
-     */
-    fun aimTurretByOffset(offsetDegrees: Double, turret: TurretSubsystem): Closure {
-        return exec {
-            val aimResult = calculateTurretAngleForOffset(offsetDegrees, turret)
-            turret.setAngle(aimResult.targetAngle)
-        }
-    }
-
-    /**
-     * Command for continuous target tracking.
-     * Call this in a loop to continuously update the turret position
-     * based on Limelight target detection.
-     * 
-     * This is essentially the same as aimTurret() but semantically indicates
-     * it should be called repeatedly.
-     * 
-     * Example usage in TeleOp:
-     * ```
-     * schedule(loop({ inLoop && trackingEnabled }, exec {
-     *     TurretCommands.trackTarget(limelight, turret)
-     * }))
-     * ```
-     * 
-     * @param limelight The limelight subsystem for target detection
-     * @param turret The turret subsystem to control
-     * @return Closure that updates turret tracking
-     */
-    fun trackTarget(limelight: LimelightSubsystem, turret: TurretSubsystem): Closure {
-        return exec {
-            val aimResult = calculateTurretAngle(limelight, turret)
-            if (aimResult.success) {
-                turret.setAngle(aimResult.targetAngle)
-            }
-            // If no target, hold current position (don't change anything)
-        }
-    }
-
-    /**
-     * Command to center the turret (return to home position).
-     * 
-     * @param turret The turret subsystem to control
-     * @return Closure that centers the turret
-     */
-    fun centerTurret(turret: TurretSubsystem): Closure {
-        return exec {
-            turret.setAngle(TurretSubsystem.DEFAULT_ANGLE)
-        }
-    }
-
-    /**
-     * Check if the Limelight currently has a valid target.
-     * 
-     * @param limelight The limelight subsystem
-     * @return true if a target is visible
-     */
-    fun hasTarget(limelight: LimelightSubsystem): Boolean {
-        return limelight.hasTarget()
-    }
+    fun stopTurret(turret: TurretSubsystem): Closure = turret.hold()
 }

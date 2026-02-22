@@ -3,12 +3,18 @@ package org.firstinspires.ftc.teamcode.subsystems
 import com.acmerobotics.dashboard.config.Config
 import dev.frozenmilk.dairy.mercurial.continuations.Closure
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.exec
+import dev.frozenmilk.dairy.mercurial.continuations.channels.Channels
 import dev.frozenmilk.dairy.mercurial.continuations.Continuations.loop
+import dev.frozenmilk.dairy.mercurial.continuations.Continuations.matchType
+import dev.frozenmilk.dairy.mercurial.continuations.Continuations.sequence
+import dev.frozenmilk.dairy.mercurial.continuations.Continuations.wait
 import dev.frozenmilk.dairy.mercurial.continuations.registers.VarRegister
 import me.tatarka.inject.annotations.Inject
+import com.qualcomm.robotcore.hardware.Servo
 import org.firstinspires.ftc.teamcode.di.HardwareFactory
 import org.firstinspires.ftc.teamcode.di.HardwareScope
-import kotlin.math.abs
+import org.firstinspires.ftc.teamcode.di.group
+import org.firstinspires.ftc.teamcode.hardware.ServoGroup
 
 @Config
 @Inject
@@ -16,30 +22,37 @@ import kotlin.math.abs
 class TransferSubsystem(factory: HardwareFactory) : Subsystem<TransferSubsystem.State, TransferSubsystem.Request>() {
 
     companion object {
-        @JvmField var DOWN_POS = 0.0
-        @JvmField var UP_POS = 0.35
-        @JvmField var HOLD_TIME_SECONDS = 0.4
-        @JvmField var INTER_TRANSFER_DELAY_SECONDS = 0.25
-        @JvmField var FIRST_TRANSFER_DELAY_SECONDS = 0.6
+        @JvmField
+        var HOLD_TIME_SECONDS = 0.4
+        @JvmField
+        var INTER_TRANSFER_DELAY_SECONDS = 0.25
+        @JvmField
+        var FIRST_TRANSFER_DELAY_SECONDS = 0.6
     }
 
-    private val servos = arrayOf(
-        factory.getServo("transfer0"),
-        factory.getServo("transfer1"),
-        factory.getServo("transfer2")
-    )
+    private val servos = (factory.group<Servo>("transfer0", "transfer1", "transfer2") as ServoGroup).also {
+        it[0].direction = Servo.Direction.REVERSE
+        it.scaleRange(-0.1, 0.2)
+        it[1].direction = Servo.Direction.FORWARD
+        it[1].scaleRange(-0.2, 0.2)
+        it[2].direction = Servo.Direction.REVERSE
+        it[2].scaleRange(-0.2, 0.2)
+    }
 
     init {
-        for (i in servos.indices) {
-            val pos = if (i == 2) UP_POS else DOWN_POS
-            servos[i].position = pos
-        }
+        servos.position = 0.0
     }
 
     sealed interface State {
         object Idle : State
         data class Active(val targetIndex: Int, val endTimestamp: Long) : State
-        data class Sequencing(val targetIndex: Int, val queue: List<Int>, val endTimestamp: Long, val isFirstStep: Boolean) : State
+        data class Sequencing(
+            val targetIndex: Int,
+            val queue: List<Int>,
+            val endTimestamp: Long,
+            val isFirstStep: Boolean
+        ) : State
+
         data class Delaying(val nextIndex: Int, val queue: List<Int>, val endTimestamp: Long) : State
     }
 
@@ -61,17 +74,66 @@ class TransferSubsystem(factory: HardwareFactory) : Subsystem<TransferSubsystem.
             is Request.Sequence -> {
                 val list = msg.indices.toList()
                 if (list.isNotEmpty()) {
-                    // Start sequence, marking isFirstStep = true
                     State.Sequencing(list.first(), list.drop(1), now + holdNs, true)
                 } else {
                     State.Idle
                 }
             }
+
             is Request.Stop -> State.Idle
         }
     }
 
     override val behavior = { register: VarRegister<State> ->
+        matchType({ register.get() })
+            .branch<State.Idle>(
+                exec { updateHardware(-1) }
+            )
+            .branch<State.Active> { stateReg ->
+                sequence(
+                    exec { updateHardware(stateReg.get().targetIndex) },
+                    wait { System.nanoTime() >= stateReg.get().endTimestamp },
+                    exec { register.set(State.Idle) }
+                )
+            }
+            .branch<State.Sequencing> { stateReg ->
+                sequence(
+                    exec { updateHardware(stateReg.get().targetIndex) },
+                    wait { System.nanoTime() >= stateReg.get().endTimestamp },
+                    exec {
+                        val s = stateReg.get()
+                        if (s.queue.isNotEmpty()) {
+                            val delaySeconds = if (s.isFirstStep) FIRST_TRANSFER_DELAY_SECONDS
+                                               else INTER_TRANSFER_DELAY_SECONDS
+                            val now = System.nanoTime()
+                            register.set(State.Delaying(s.queue.first(), s.queue.drop(1), now + (delaySeconds * 1e9).toLong()))
+                        } else {
+                            register.set(State.Idle)
+                        }
+                    }
+                )
+            }
+            .branch<State.Delaying> { stateReg ->
+                sequence(
+                    exec { updateHardware(-1) },
+                    wait { System.nanoTime() >= stateReg.get().endTimestamp },
+                    exec {
+                        val s = stateReg.get()
+                        val now = System.nanoTime()
+                        register.set(State.Sequencing(s.nextIndex, s.queue, now + (HOLD_TIME_SECONDS * 1e9).toLong(), false))
+                    }
+                )
+            }
+            .assertExhaustive()
+    }
+
+    // ---------------------------------------------------------------------------
+    // Legacy behavior — flat loop(exec{}) polling System.nanoTime() directly.
+    // Kept as a fallback in case the match+wait version proves unresponsive.
+    // To switch back: replace `override val behavior` above with this one.
+    // ---------------------------------------------------------------------------
+    @Suppress("unused")
+    private val behaviorLegacy = { register: VarRegister<State> ->
         loop(exec {
             val state = register.get()
             val now = System.nanoTime()
@@ -113,11 +175,10 @@ class TransferSubsystem(factory: HardwareFactory) : Subsystem<TransferSubsystem.
                 }
 
                 is State.Delaying -> {
-                    updateHardware(-1) // Ensure hardware is down during the gap
+                    updateHardware(-1)
 
                     if (now > state.endTimestamp) {
                         val holdNs = (HOLD_TIME_SECONDS * 1e9).toLong()
-                        // Resume sequencing. isFirstStep is always false after the first delay.
                         register.set(State.Sequencing(state.nextIndex, state.queue, now + holdNs, false))
                     }
                 }
@@ -126,22 +187,15 @@ class TransferSubsystem(factory: HardwareFactory) : Subsystem<TransferSubsystem.
     }
 
     private fun updateHardware(targetIndex: Int) {
-        for (i in servos.indices) {
-            val shouldBeUp = (i == targetIndex)
-
-            val finalPos = if (i == 2) {
-                if (shouldBeUp) DOWN_POS else UP_POS
-            } else {
-                if (shouldBeUp) UP_POS else DOWN_POS
-            }
-
-            if (abs(servos[i].position - finalPos) > 0.001) {
-                servos[i].position = finalPos
-            }
+        for (i in 0 until servos.size) {
+            servos[i].position = if (i == targetIndex) 1.0 else 0.0
         }
     }
 
     fun trigger(index: Int): Closure = update(Request.Single(index))
+
+    /** Lazy overload — evaluates [index] at send time, not at registration time. */
+    fun trigger(index: () -> Int): Closure = Channels.send({ Request.Single(index()) }, { actor.tx })
 
     fun triggerSequence(indices: Array<Int>): Closure = update(Request.Sequence(indices))
 

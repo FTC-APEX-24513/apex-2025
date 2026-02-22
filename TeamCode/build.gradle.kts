@@ -134,6 +134,7 @@ dependencies {
     // Kotlin
     implementation(libs.kotlin.inject.runtime)
     ksp(libs.kotlin.inject.compiler)
+    ksp(project(":hardware-processor"))
 
     // Pedro Pathing
     implementation(libs.pedro.pathing)

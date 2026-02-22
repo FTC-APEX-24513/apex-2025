@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.opmodes
+package org.firstinspires.ftc.teamcode.opmodes.test
 
 import android.graphics.Color
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor

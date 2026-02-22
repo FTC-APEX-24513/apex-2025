@@ -33,7 +33,7 @@ class IndexerSubsystem(factory: HardwareFactory) : Subsystem<IndexerSubsystem.St
         var GREEN_HUE_MAX = 180.0
 
         @JvmField
-        var PURPLE_HUE_MIN = 220.0
+        var PURPLE_HUE_MIN = 217.0
 
         @JvmField
         var PURPLE_HUE_MAX = 260.0

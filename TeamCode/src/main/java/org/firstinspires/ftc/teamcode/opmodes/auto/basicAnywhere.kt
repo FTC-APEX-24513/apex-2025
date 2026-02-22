@@ -19,7 +19,7 @@ val basicAnywhere = Mercurial.autonomous {
     schedule(
         sequence(
             exec { container.follower.setTeleOpDrive(0.0, 0.5, 0.0) },
-            wait(0.4),
+            wait(0.5),
             exec { container.follower.setTeleOpDrive(0.0, 0.0, 0.0) }
         )
     )

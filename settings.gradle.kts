@@ -25,3 +25,4 @@ dependencyResolutionManagement {
 rootProject.name = "apex-2025"
 include(":TeamCode")
 include(":FtcRobotController")
+include(":hardware-processor")

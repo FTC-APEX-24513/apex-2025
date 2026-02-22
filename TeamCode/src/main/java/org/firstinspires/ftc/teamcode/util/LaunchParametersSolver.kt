@@ -1,22 +1,23 @@
 package org.firstinspires.ftc.teamcode.util
 
+import org.firstinspires.ftc.teamcode.subsystems.OuttakeSubsystem
 import kotlin.math.*
 
 object LaunchParametersSolver {
     private const val G = 9.81
     private const val K_DRAG = 0.0054
-    private const val K_LIFT = 0.0046 
+    private const val K_LIFT = 0.0046
 
-    private const val GOAL_HEIGHT = 2.5
-    private const val AXLE_HEIGHT = 0.5
+    private const val GOAL_HEIGHT = 1.175
+    private const val AXLE_HEIGHT = 1.1
     private const val RELATIVE_TARGET_Y = GOAL_HEIGHT - AXLE_HEIGHT
-    private const val PIVOT_L = 0.35
+    private const val PIVOT_L = 0.1035
 
-    private const val MIN_ANGLE = 30
-    private const val MAX_ANGLE = 75
+    private const val MIN_ANGLE = 20
+    private const val MAX_ANGLE = 50
     private const val MAX_RPM = 5000.0
     private const val EFFICIENCY = 0.80
-    private const val WHEEL_CIRCUMFERENCE = 0.319
+    private const val WHEEL_CIRCUMFERENCE = 0.3015928947
 
     private const val DT = 0.01
     private const val TOLERANCE = 0.02
